@@ -1,0 +1,13 @@
+.idea/
+.vscode/
+target/
+build/
+out/
+*.log
+
+.env
+*.local
+
+backend/target/
+
+docker-data/

@@ -1,0 +1,58 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: realtime-chat
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/realtime_chat}
+    username: ${DB_USERNAME:chat_user}
+    password: ${DB_PASSWORD:chat_password}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+        jdbc.time_zone: UTC
+  flyway:
+    enabled: true
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:29092}
+    consumer:
+      group-id: realtime-chat
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: com.example.realtimechat.*
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        enable.idempotence: true
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:change-this-secret-to-a-long-random-value-change-me}
+    access-token-ttl-minutes: ${JWT_ACCESS_TOKEN_TTL_MINUTES:30}
+  clickhouse:
+    url: ${CLICKHOUSE_URL:jdbc:clickhouse://localhost:8123/realtime_chat_analytics}
+    username: ${CLICKHOUSE_USER:analytics_user}
+    password: ${CLICKHOUSE_PASSWORD:analytics_password}
+  kafka:
+    topics:
+      message-created: chat.message.created
+      message-persisted: chat.message.persisted
+      presence-changed: chat.presence.changed
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus

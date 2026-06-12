@@ -21,7 +21,8 @@ Backend project mô phỏng hệ thống chat thời gian thực theo hướng e
 - Dùng Kafka làm message broker để tách luồng xử lý ghi, realtime delivery, notification và analytics.
 - Dùng Redis để cache, quản lý presence, rate limit và pub/sub hỗ trợ scale WebSocket.
 - Dùng Apache Flink xử lý stream analytics từ Kafka.
-- Dùng PostgreSQL lưu dữ liệu quan hệ và lịch sử tin nhắn.
+- Dùng PostgreSQL lưu dữ liệu nghiệp vụ chính: user, conversation, message, receipt, notification.
+- Dùng ClickHouse lưu dữ liệu analytics realtime từ Kafka/Flink.
 - Dùng Docker Compose để chạy toàn bộ môi trường local.
 - Có observability cơ bản: log correlation, metrics, health check.
 
@@ -100,7 +101,7 @@ Client Web/Mobile
       v
 Spring Boot Chat API
       |
-      |-- PostgreSQL: users, conversations, messages
+      |-- PostgreSQL: users, conversations, messages, receipts
       |-- Redis: presence, cache, rate limit, websocket session
       |-- Kafka Producer: message events, notification events, analytics events
       |
@@ -114,7 +115,7 @@ Kafka
 Apache Flink
       |
       v
-Analytics Sink: PostgreSQL/ClickHouse/Elasticsearch
+Analytics Sink: ClickHouse
 ```
 
 Khuyến nghị triển khai ban đầu theo modular monolith để dễ hoàn thành:
@@ -158,6 +159,7 @@ Khi cần nâng cấp portfolio, có thể tách thành microservices:
 ### Infrastructure
 
 - PostgreSQL
+- ClickHouse
 - Redis
 - Apache Kafka
 - Apache Zookeeper hoặc KRaft mode
@@ -241,6 +243,28 @@ Khi cần nâng cấp portfolio, có thể tách thành microservices:
 | user_id | UUID | FK users |
 | status | VARCHAR | DELIVERED, READ |
 | created_at | TIMESTAMP | Thời điểm ghi nhận |
+
+### analytics_message_metrics
+
+Bảng analytics nên lưu trong ClickHouse, không lưu trong PostgreSQL.
+
+| Column | Type | Ghi chú |
+| --- | --- | --- |
+| window_start | DateTime | Thời điểm bắt đầu window |
+| window_end | DateTime | Thời điểm kết thúc window |
+| conversation_id | UUID | Conversation được thống kê |
+| message_count | UInt64 | Số tin nhắn trong window |
+| unique_senders | UInt64 | Số sender khác nhau |
+
+### analytics_active_users
+
+Bảng analytics nên lưu trong ClickHouse.
+
+| Column | Type | Ghi chú |
+| --- | --- | --- |
+| window_start | DateTime | Thời điểm bắt đầu window |
+| window_end | DateTime | Thời điểm kết thúc window |
+| active_users | UInt64 | Số user active trong window |
 
 ## 7. Kafka Topics Đề Xuất
 
@@ -391,6 +415,7 @@ Payload typing:
 
 ```text
 Realtime-Chat/
+  pom.xml
   docker-compose.yml
   README.md
   backend/
@@ -441,14 +466,41 @@ docker --version
 docker compose version
 ```
 
-### 14.2. Clone project
+### 14.2. Import Maven trong IntelliJ
+
+Project có root Maven parent và backend module:
+
+```text
+Realtime-Chat/pom.xml
+Realtime-Chat/backend/pom.xml
+```
+
+Trong IntelliJ:
+
+```text
+File -> Open -> chọn C:\Users\ADMIN\Documents\Realtime-Chat\pom.xml
+```
+
+Hoặc nếu đã mở project root:
+
+```text
+Maven Tool Window -> + -> chọn C:\Users\ADMIN\Documents\Realtime-Chat\pom.xml
+```
+
+Nếu máy chưa cài Maven, có thể dùng Maven bundled của IntelliJ:
+
+```text
+Settings -> Build, Execution, Deployment -> Build Tools -> Maven -> Maven home path -> Bundled
+```
+
+### 14.3. Clone project
 
 ```bash
 git clone <repository-url>
 cd Realtime-Chat
 ```
 
-### 14.3. Tạo file môi trường
+### 14.4. Tạo file môi trường
 
 Tạo file `.env` ở root project:
 
@@ -456,6 +508,10 @@ Tạo file `.env` ở root project:
 POSTGRES_DB=realtime_chat
 POSTGRES_USER=chat_user
 POSTGRES_PASSWORD=chat_password
+
+CLICKHOUSE_DB=realtime_chat_analytics
+CLICKHOUSE_USER=analytics_user
+CLICKHOUSE_PASSWORD=analytics_password
 
 REDIS_HOST=redis
 REDIS_PORT=6379
@@ -467,7 +523,7 @@ JWT_ACCESS_TOKEN_TTL_MINUTES=30
 JWT_REFRESH_TOKEN_TTL_DAYS=7
 ```
 
-### 14.4. Docker Compose mẫu
+### 14.5. Docker Compose mẫu
 
 Nếu project chưa có `docker-compose.yml`, có thể tạo theo cấu hình sau:
 
@@ -490,6 +546,20 @@ services:
     container_name: realtime-chat-redis
     ports:
       - "6379:6379"
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.8
+    container_name: realtime-chat-clickhouse
+    environment:
+      CLICKHOUSE_DB: realtime_chat_analytics
+      CLICKHOUSE_USER: analytics_user
+      CLICKHOUSE_PASSWORD: analytics_password
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.6.1
@@ -536,6 +606,7 @@ services:
 
 volumes:
   postgres_data:
+  clickhouse_data:
 ```
 
 Chạy hạ tầng:
@@ -550,7 +621,7 @@ Kiểm tra container:
 docker compose ps
 ```
 
-### 14.5. Chạy backend
+### 14.6. Chạy backend
 
 ```bash
 cd backend
@@ -570,7 +641,7 @@ Health check:
 http://localhost:8080/actuator/health
 ```
 
-### 14.6. Chạy Flink job
+### 14.7. Chạy Flink job
 
 Build job:
 
@@ -631,6 +702,11 @@ spring:
       properties:
         enable.idempotence: true
 
+clickhouse:
+  url: jdbc:clickhouse://localhost:8123/realtime_chat_analytics
+  username: analytics_user
+  password: analytics_password
+
 management:
   endpoints:
     web:
@@ -690,7 +766,8 @@ Error response mẫu:
 
 ### Integration tests
 
-- Repository với PostgreSQL Testcontainers.
+- Repository nghiệp vụ với PostgreSQL Testcontainers.
+- Analytics sink với ClickHouse Testcontainers hoặc integration test bằng Docker Compose.
 - Redis presence với Redis Testcontainers.
 - Kafka producer/consumer với Kafka Testcontainers.
 - REST API với MockMvc.
@@ -728,7 +805,8 @@ Nên bổ sung:
 ### Phương án đơn giản
 
 - Backend chạy bằng Docker container.
-- PostgreSQL managed database.
+- PostgreSQL managed database cho OLTP/core chat.
+- ClickHouse managed/self-hosted database cho analytics.
 - Redis managed service.
 - Kafka managed service hoặc self-hosted.
 - Nginx làm reverse proxy.
@@ -740,7 +818,8 @@ Nên bổ sung:
 - Horizontal Pod Autoscaler cho backend.
 - Redis Cluster.
 - Kafka cluster 3 brokers.
-- PostgreSQL primary/replica.
+- PostgreSQL primary/replica cho dữ liệu nghiệp vụ.
+- ClickHouse cluster cho analytics nếu cần scale dashboard.
 - Prometheus/Grafana/Loki.
 - CI/CD với GitHub Actions.
 
@@ -791,7 +870,7 @@ ENTRYPOINT ["java", "-jar", "app.jar"]
 - Tạo Flink job đọc Kafka topic.
 - Tính messages per minute.
 - Tính active users theo sliding window.
-- Ghi kết quả vào PostgreSQL hoặc Elasticsearch.
+- Ghi kết quả analytics vào ClickHouse.
 - Tạo API xem analytics.
 
 ### Phase 5: Production-ready

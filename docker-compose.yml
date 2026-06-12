@@ -1,0 +1,79 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: realtime-chat-postgres
+    environment:
+      POSTGRES_DB: realtime_chat
+      POSTGRES_USER: chat_user
+      POSTGRES_PASSWORD: chat_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    container_name: realtime-chat-redis
+    ports:
+      - "6379:6379"
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.8
+    container_name: realtime-chat-clickhouse
+    environment:
+      CLICKHOUSE_DB: realtime_chat_analytics
+      CLICKHOUSE_USER: analytics_user
+      CLICKHOUSE_PASSWORD: analytics_password
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.1
+    container_name: realtime-chat-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+
+  kafka:
+    image: confluentinc/cp-kafka:7.6.1
+    container_name: realtime-chat-kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+  flink-jobmanager:
+    image: flink:1.19
+    container_name: realtime-chat-flink-jobmanager
+    ports:
+      - "8081:8081"
+    command: jobmanager
+    environment:
+      JOB_MANAGER_RPC_ADDRESS: flink-jobmanager
+
+  flink-taskmanager:
+    image: flink:1.19
+    container_name: realtime-chat-flink-taskmanager
+    depends_on:
+      - flink-jobmanager
+    command: taskmanager
+    environment:
+      JOB_MANAGER_RPC_ADDRESS: flink-jobmanager
+
+volumes:
+  postgres_data:
+  clickhouse_data:
