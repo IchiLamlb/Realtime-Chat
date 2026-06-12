@@ -2,7 +2,7 @@
 
 File này dùng để kiểm soát các vấn đề tồn đọng, bug, rủi ro kỹ thuật và blocker phát sinh trong quá trình triển khai Real-time Chat Platform.
 
-Nguồn task chính: [CHECKLIST.md](./CHECKLIST.md)
+Nguồn task chính: [CHECKLIST.md](CHECKLIST.md)
 
 ## 1. Quy Ước Ánh Xạ Với CHECKLIST
 
@@ -87,7 +87,7 @@ Cập nhật thủ công khi có issue mới hoặc khi issue đổi trạng th�
 | In progress | 0 |
 | Blocked | 0 |
 | Ready to verify | 0 |
-| Resolved | 4 |
+| Resolved | 5 |
 | P0/P1 active | 2 |
 
 ## 7. Active Issues
@@ -117,6 +117,7 @@ Cập nhật thủ công khi có issue mới hoặc khi issue đổi trạng th�
 | ISSUE-0004 | CL-01-03 | IntelliJ không nhận Maven project ở root | Thêm root Maven parent `pom.xml` include module `backend` | Docker Maven build | 2026-06-12 |
 | ISSUE-0005 | CL-01-04, CL-01-05, CL-01-06, CL-21-04 | Chuẩn hóa cấu trúc enterprise | Thêm Maven Wrapper, Enforcer, ArchUnit, EditorConfig, Git attributes và tài liệu cấu trúc | Maven Wrapper test | 2026-06-12 |
 | ISSUE-0007 | CL-01-10 | Refactor package theo layout enterprise | Tách package theo `api/application/domain/infrastructure` cho các domain chính | Docker Maven build | 2026-06-12 |
+| ISSUE-0008 | CL-01-11, CL-02-07 | PostgreSQL từ chối timezone `Asia/Saigon` khi Flyway mở connection | Ép JVM default timezone về `UTC` trước khi Spring Boot khởi tạo datasource | Docker Maven run | 2026-06-12 |
 
 ## 11. Issue Detail Template
 
@@ -440,6 +441,44 @@ docker run --rm -v realtime-chat-m2:/root/.m2 -v ${PWD}:/workspace -w /workspace
 ```
 
 Kết quả: `BUILD SUCCESS`, `ArchitectureTest` 4 rules pass.
+
+### ISSUE-0008: PostgreSQL từ chối timezone `Asia/Saigon`
+
+| Field | Value |
+| --- | --- |
+| Checklist Ref | CL-01-11, CL-02-07 |
+| Checklist Task | Ép JVM timezone về `UTC`; Kiểm tra backend kết nối được PostgreSQL |
+| Type | ENV |
+| Priority | P1 |
+| Severity | S2 |
+| Status | RESOLVED |
+| Owner | Backend |
+| Created | 2026-06-12 |
+| Updated | 2026-06-12 |
+
+#### Mô tả
+
+Khi chạy backend từ IntelliJ/local, PostgreSQL từ chối kết nối ở bước Flyway migration:
+
+```text
+FATAL: invalid value for parameter "TimeZone": "Asia/Saigon"
+```
+
+Stacktrace phía trên báo lỗi `JwtAuthenticationFilter`, `JpaUserDetailsService`, `UserRepository` và `EntityManagerFactory`, nhưng đó chỉ là lỗi dây chuyền vì datasource không tạo được.
+
+#### Nguyên nhân gốc
+
+JVM local đang dùng timezone legacy `Asia/Saigon`. PostgreSQL không nhận giá trị này trong startup parameter `TimeZone`, nên Flyway không mở được connection.
+
+#### Kết quả xử lý
+
+- Ép JVM default timezone về `UTC` ngay trong `RealtimeChatApplication.main()` trước khi Spring Boot khởi tạo datasource.
+- Giữ `hibernate.jdbc.time_zone: UTC` trong `application.yml` để Hibernate ghi/đọc timestamp nhất quán.
+
+#### Kiểm thử cần chạy
+
+- [x] Docker Maven build/test.
+- [x] Chạy backend với Docker Compose PostgreSQL để xác nhận Flyway migrate thành công.
 
 ## 13. Checklist Section Map
 

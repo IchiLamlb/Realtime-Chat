@@ -21,6 +21,7 @@ Ghi chú: Markdown mặc định không hỗ trợ checkbox `[~]` và `[!]` như
 - [x] Tạo cấu trúc package theo domain.
 - [x] Refactor package theo layout `api/application/domain/infrastructure`.
 - [x] Tạo file `application.yml`.
+- [x] Ép JVM timezone về `UTC` để PostgreSQL/Flyway không lỗi timezone local.
 - [ ] Tạo profile `local`, `dev`, `prod`.
 - [ ] Cấu hình format code và convention cơ bản.
 - [x] Thêm `.gitignore`.
@@ -35,7 +36,7 @@ Ghi chú: Markdown mặc định không hỗ trợ checkbox `[~]` và `[!]` như
 - [x] Chạy Kafka bằng Docker Compose.
 - [x] Chạy Apache Flink bằng Docker Compose.
 - [x] Cấu hình Kafka advertised listeners cho local.
-- [ ] Kiểm tra backend kết nối được PostgreSQL.
+- [x] Kiểm tra backend kết nối được PostgreSQL.
 - [ ] Kiểm tra Flink/backend ghi được analytics vào ClickHouse.
 - [ ] Kiểm tra backend kết nối được Redis.
 - [ ] Kiểm tra backend publish/consume được Kafka message.

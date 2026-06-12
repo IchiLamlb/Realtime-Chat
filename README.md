@@ -698,6 +698,12 @@ mvn clean install
 mvn spring-boot:run
 ```
 
+Ghi chú timezone:
+
+- Backend ép JVM timezone về `UTC` trước khi Spring Boot khởi tạo datasource để tránh lỗi PostgreSQL `invalid value for parameter "TimeZone": "Asia/Saigon"`.
+- Nếu chạy bằng IntelliJ Run Configuration riêng, có thể thêm VM option `-Duser.timezone=UTC`.
+- Không dùng `Asia/Saigon`; nếu cần timezone Việt Nam ở tầng hiển thị, dùng `Asia/Ho_Chi_Minh`.
+
 Ứng dụng mặc định chạy tại:
 
 ```text
