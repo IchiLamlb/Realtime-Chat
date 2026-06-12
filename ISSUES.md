@@ -83,18 +83,19 @@ Cập nhật thủ công khi có issue mới hoặc khi issue đổi trạng th�
 
 | Nhóm | Số lượng |
 | --- | ---: |
-| Open issues | 1 |
+| Open issues | 2 |
 | In progress | 0 |
 | Blocked | 0 |
 | Ready to verify | 0 |
-| Resolved | 2 |
-| P0/P1 active | 1 |
+| Resolved | 4 |
+| P0/P1 active | 2 |
 
 ## 7. Active Issues
 
 | Issue ID | Checklist Ref | Task | Type | Priority | Severity | Status | Owner | Created | Updated |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | ISSUE-0003 | CL-08-03, CL-08-12 | WebSocket JWT handshake và subscribe authorization chưa hoàn chỉnh | RISK | P1 | S2 | OPEN | Backend | 2026-06-12 | 2026-06-12 |
+| ISSUE-0006 | CL-01-01 | Local `JAVA_HOME` đang dùng JDK 17, project yêu cầu JDK 21 | ENV | P1 | S3 | OPEN | Environment | 2026-06-12 | 2026-06-12 |
 
 ## 8. Blocked Issues
 
@@ -114,6 +115,8 @@ Cập nhật thủ công khi có issue mới hoặc khi issue đổi trạng th�
 | --- | --- | --- | --- | --- | --- |
 | ISSUE-0002 | CL-02-02, CL-14-09 | Chọn database cho core chat và analytics | Dùng PostgreSQL cho OLTP/core chat, ClickHouse cho analytics sink | Architecture decision | 2026-06-12 |
 | ISSUE-0004 | CL-01-03 | IntelliJ không nhận Maven project ở root | Thêm root Maven parent `pom.xml` include module `backend` | Docker Maven build | 2026-06-12 |
+| ISSUE-0005 | CL-01-04, CL-01-05, CL-01-06, CL-21-04 | Chuẩn hóa cấu trúc enterprise | Thêm Maven Wrapper, Enforcer, ArchUnit, EditorConfig, Git attributes và tài liệu cấu trúc | Maven Wrapper test | 2026-06-12 |
+| ISSUE-0007 | CL-01-10 | Refactor package theo layout enterprise | Tách package theo `api/application/domain/infrastructure` cho các domain chính | Docker Maven build | 2026-06-12 |
 
 ## 11. Issue Detail Template
 
@@ -317,6 +320,126 @@ docker run --rm -v realtime-chat-m2:/root/.m2 -v ${PWD}:/workspace -w /workspace
 ```
 
 Kết quả: `BUILD SUCCESS`.
+
+### ISSUE-0005: Chuẩn hóa cấu trúc enterprise
+
+| Field | Value |
+| --- | --- |
+| Checklist Ref | CL-01-04, CL-01-05, CL-01-06, CL-21-04 |
+| Checklist Task | Maven Wrapper; Maven Enforcer; ArchUnit architecture tests; tài liệu cấu trúc project enterprise |
+| Type | TECH_DEBT |
+| Priority | P1 |
+| Severity | S3 |
+| Status | RESOLVED |
+| Owner | Backend |
+| Created | 2026-06-12 |
+| Updated | 2026-06-12 |
+
+#### Mô tả
+
+Cấu trúc MVP chạy được nhưng cần thêm guardrails để thể hiện chuẩn enterprise và clean code khi review CV.
+
+#### Kết quả xử lý
+
+- Thêm Maven Wrapper để build không phụ thuộc Maven cài sẵn.
+- Thêm Maven Enforcer yêu cầu Java 21 và Maven 3.9+.
+- Thêm ArchUnit test kiểm soát dependency giữa controller/service/repository và adapter WebSocket.
+- Thêm `.editorconfig` và `.gitattributes`.
+- Thêm `docs/PROJECT_STRUCTURE.md` mô tả package boundary và cấu trúc mục tiêu.
+
+#### Kiểm thử cần chạy
+
+```powershell
+.\mvnw.cmd test
+```
+
+#### Kết quả kiểm thử
+
+Docker JDK 21 build đã pass:
+
+```bash
+docker run --rm -v realtime-chat-m2:/root/.m2 -v ${PWD}:/workspace -w /workspace maven:3.9-eclipse-temurin-21 mvn test
+```
+
+Kết quả: `BUILD SUCCESS`, `ArchitectureTest` chạy 4 rule, 0 failures.
+
+### ISSUE-0006: Local JAVA_HOME đang dùng JDK 17
+
+| Field | Value |
+| --- | --- |
+| Checklist Ref | CL-01-01 |
+| Checklist Task | Tạo Spring Boot project Java 21 |
+| Type | ENV |
+| Priority | P1 |
+| Severity | S3 |
+| Status | OPEN |
+| Owner | Environment |
+| Created | 2026-06-12 |
+| Updated | 2026-06-12 |
+
+#### Mô tả
+
+Project đã enforce Java 21 bằng Maven Enforcer. Khi chạy local:
+
+```powershell
+.\mvnw.cmd test
+```
+
+Maven phát hiện:
+
+```text
+Detected JDK version 17.0.12 (JAVA_HOME=C:\Program Files\Java\jdk-17) is not in the allowed range [21,).
+```
+
+#### Hướng xử lý
+
+- [ ] Cài JDK 21 nếu máy chưa có.
+- [ ] Đổi `JAVA_HOME` sang JDK 21.
+- [ ] Trong IntelliJ, chọn Project SDK = JDK 21.
+- [ ] Trong IntelliJ Maven importer, chọn JDK for importer = JDK 21.
+
+#### Workaround hiện tại
+
+Có thể build bằng Docker JDK 21:
+
+```bash
+docker run --rm -v realtime-chat-m2:/root/.m2 -v ${PWD}:/workspace -w /workspace maven:3.9-eclipse-temurin-21 mvn test
+```
+
+### ISSUE-0007: Refactor package theo layout enterprise
+
+| Field | Value |
+| --- | --- |
+| Checklist Ref | CL-01-10 |
+| Checklist Task | Refactor package theo layout `api/application/domain/infrastructure` |
+| Type | TECH_DEBT |
+| Priority | P1 |
+| Severity | S3 |
+| Status | RESOLVED |
+| Owner | Backend |
+| Created | 2026-06-12 |
+| Updated | 2026-06-12 |
+
+#### Mô tả
+
+Cấu trúc ban đầu đã package theo domain nhưng controller, service, entity, repository vẫn nằm chung một package. Điều này ổn cho MVP nhỏ, nhưng chưa đủ clean khi muốn trình bày theo chuẩn doanh nghiệp.
+
+#### Kết quả xử lý
+
+- `auth` được tách thành `api`, `application`, `security`.
+- `user`, `conversation`, `message`, `presence` được tách thành `api`, `application`, `domain`, `infrastructure`.
+- `websocket` được tách thành `api` và `api/dto`.
+- `kafka` được tách thành `consumer`, `producer`, `event`.
+- `common` được tách thành `api`, `domain`, `error`, `ratelimit`.
+- Cập nhật `README.md` và `docs/PROJECT_STRUCTURE.md` theo layout mới.
+
+#### Kiểm thử đã chạy
+
+```bash
+docker run --rm -v realtime-chat-m2:/root/.m2 -v ${PWD}:/workspace -w /workspace maven:3.9-eclipse-temurin-21 mvn test
+```
+
+Kết quả: `BUILD SUCCESS`, `ArchitectureTest` 4 rules pass.
 
 ## 13. Checklist Section Map
 

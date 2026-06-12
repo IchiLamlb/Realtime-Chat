@@ -1,7 +1,7 @@
 package com.example.realtimechat.config;
 
-import com.example.realtimechat.auth.JwtAuthenticationFilter;
-import com.example.realtimechat.auth.JpaUserDetailsService;
+import com.example.realtimechat.auth.security.JwtAuthenticationFilter;
+import com.example.realtimechat.auth.security.JpaUserDetailsService;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

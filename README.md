@@ -123,14 +123,41 @@ Khuyến nghị triển khai ban đầu theo modular monolith để dễ hoàn t
 ```text
 src/main/java/com/example/realtimechat
   auth/
+    api/
+    application/
+    security/
   user/
+    api/
+    application/
+    domain/
+    infrastructure/
   conversation/
+    api/
+    application/
+    domain/
+    infrastructure/
   message/
+    api/
+    application/
+    domain/
+    infrastructure/
   websocket/
+    api/
   presence/
-  notification/
-  analytics/
+    api/
+    application/
+    domain/
+    infrastructure/
+  kafka/
+    consumer/
+    event/
+    producer/
   common/
+    api/
+    domain/
+    error/
+    ratelimit/
+  config/
 ```
 
 Khi cần nâng cấp portfolio, có thể tách thành microservices:
@@ -426,25 +453,49 @@ Realtime-Chat/
           com/example/realtimechat/
             RealtimeChatApplication.java
             auth/
+              api/
+              application/
+              security/
             user/
+              api/
+              application/
+              domain/
+              infrastructure/
             conversation/
+              api/
+              application/
+              domain/
+              infrastructure/
             message/
+              api/
+              application/
+              domain/
+              infrastructure/
             websocket/
+              api/
             presence/
-            notification/
-            analytics/
+              api/
+              application/
+              domain/
+              infrastructure/
+            kafka/
+              consumer/
+              event/
+              producer/
             common/
+              api/
+              domain/
+              error/
+              ratelimit/
+            config/
         resources/
           application.yml
           db/migration/
       test/
-  flink-jobs/
-    chat-analytics/
-      pom.xml
-      src/main/java/
+        java/com/example/realtimechat/
+          ArchitectureTest.java
   docs/
-    api.md
-    architecture.md
+    PROJECT_STRUCTURE.md
 ```
 
 ## 14. Hướng Dẫn Chạy Local
@@ -491,6 +542,24 @@ Nếu máy chưa cài Maven, có thể dùng Maven bundled của IntelliJ:
 
 ```text
 Settings -> Build, Execution, Deployment -> Build Tools -> Maven -> Maven home path -> Bundled
+```
+
+Project cũng có Maven Wrapper, nên có thể build mà không cần cài Maven toàn cục:
+
+```bash
+./mvnw test
+```
+
+Trên Windows:
+
+```powershell
+.\mvnw.cmd test
+```
+
+Quy ước cấu trúc enterprise được mô tả tại:
+
+```text
+docs/PROJECT_STRUCTURE.md
 ```
 
 ### 14.3. Clone project

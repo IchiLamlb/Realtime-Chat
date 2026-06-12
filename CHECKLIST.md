@@ -14,7 +14,12 @@ Ghi chú: Markdown mặc định không hỗ trợ checkbox `[~]` và `[!]` như
 - [x] Tạo Spring Boot project Java 21.
 - [x] Cấu hình Maven hoặc Gradle.
 - [x] Thêm root Maven parent `pom.xml` để IntelliJ nhận project.
+- [x] Thêm Maven Wrapper.
+- [x] Thêm Maven Enforcer kiểm tra Java 21 và Maven 3.9+.
+- [x] Thêm ArchUnit architecture tests.
+- [x] Thêm `.editorconfig` và `.gitattributes`.
 - [x] Tạo cấu trúc package theo domain.
+- [x] Refactor package theo layout `api/application/domain/infrastructure`.
 - [x] Tạo file `application.yml`.
 - [ ] Tạo profile `local`, `dev`, `prod`.
 - [ ] Cấu hình format code và convention cơ bản.
@@ -301,6 +306,7 @@ Ghi chú: Markdown mặc định không hỗ trợ checkbox `[~]` và `[!]` như
 - [x] Viết README mô tả dự án.
 - [x] Viết checklist tiến độ.
 - [ ] Viết tài liệu API.
+- [x] Viết tài liệu cấu trúc project enterprise.
 - [ ] Viết sơ đồ kiến trúc.
 - [ ] Viết hướng dẫn chạy local chi tiết.
 - [ ] Viết hướng dẫn demo phỏng vấn.
