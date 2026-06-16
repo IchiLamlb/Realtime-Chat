@@ -144,7 +144,7 @@ service -> controller
 - Tach interface repository o application/domain neu can decouple JPA manh hon.
 - Them integration tests voi Testcontainers.
 - Them GitHub Actions chay `./mvnw test`.
-- Them WebSocket JWT `ChannelInterceptor`.
+- Them WebSocket/STOMP integration tests cho JWT connect va subscribe authorization.
 - Them refresh token/logout.
 - Them outbox/idempotency cho Kafka event.
 - Them metrics cho message delivery latency.

@@ -1,11 +1,10 @@
 package com.example.realtimechat.presence.infrastructure;
 
-
-import com.example.realtimechat.presence.application.PresenceService;
-import com.example.realtimechat.user.domain.User;
 import com.example.realtimechat.auth.security.AuthenticatedUser;
+import com.example.realtimechat.presence.application.PresenceService;
 import java.security.Principal;
 import org.springframework.context.event.EventListener;
+import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.messaging.SessionConnectEvent;
 import org.springframework.web.socket.messaging.SessionDisconnectEvent;
@@ -22,8 +21,9 @@ public class WebSocketPresenceListener {
     @EventListener
     public void onConnect(SessionConnectEvent event) {
         Principal principal = event.getUser();
-        if (principal instanceof AuthenticatedUser user) {
-            presenceService.markOnline(user.id(), event.getMessage().getHeaders().getId().toString());
+        String sessionId = SimpMessageHeaderAccessor.getSessionId(event.getMessage().getHeaders());
+        if (principal instanceof AuthenticatedUser user && sessionId != null) {
+            presenceService.markOnline(user.id(), sessionId);
         }
     }
 

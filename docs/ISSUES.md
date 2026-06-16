@@ -83,18 +83,17 @@ Cập nhật thủ công khi có issue mới hoặc khi issue đổi trạng th�
 
 | Nhóm | Số lượng |
 | --- | ---: |
-| Open issues | 2 |
+| Open issues | 1 |
 | In progress | 0 |
 | Blocked | 0 |
 | Ready to verify | 0 |
-| Resolved | 5 |
-| P0/P1 active | 2 |
+| Resolved | 6 |
+| P0/P1 active | 1 |
 
 ## 7. Active Issues
 
 | Issue ID | Checklist Ref | Task | Type | Priority | Severity | Status | Owner | Created | Updated |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| ISSUE-0003 | CL-08-03, CL-08-12 | WebSocket JWT handshake và subscribe authorization chưa hoàn chỉnh | RISK | P1 | S2 | OPEN | Backend | 2026-06-12 | 2026-06-12 |
 | ISSUE-0006 | CL-01-01 | Local `JAVA_HOME` đang dùng JDK 17, project yêu cầu JDK 21 | ENV | P1 | S3 | OPEN | Environment | 2026-06-12 | 2026-06-12 |
 
 ## 8. Blocked Issues
@@ -118,6 +117,7 @@ Cập nhật thủ công khi có issue mới hoặc khi issue đổi trạng th�
 | ISSUE-0005 | CL-01-04, CL-01-05, CL-01-06, CL-21-04 | Chuẩn hóa cấu trúc enterprise | Thêm Maven Wrapper, Enforcer, ArchUnit, EditorConfig, Git attributes và tài liệu cấu trúc | Maven Wrapper test | 2026-06-12 |
 | ISSUE-0007 | CL-01-10 | Refactor package theo layout enterprise | Tách package theo `api/application/domain/infrastructure` cho các domain chính | Docker Maven build | 2026-06-12 |
 | ISSUE-0008 | CL-01-11, CL-02-07 | PostgreSQL từ chối timezone `Asia/Saigon` khi Flyway mở connection | Ép JVM default timezone về `UTC` trước khi Spring Boot khởi tạo datasource | Docker Maven run | 2026-06-12 |
+| ISSUE-0003 | CL-08-03, CL-08-12, CL-11-01, CL-11-02, CL-11-03 | WebSocket JWT handshake, subscribe authorization và presence session lifecycle | Thêm STOMP `CONNECT` JWT interceptor, chặn `SUBSCRIBE` trái phép theo conversation membership, dùng `simpSessionId` cho presence connect/disconnect | `.\mvnw.cmd -pl backend test` | 2026-06-16 |
 
 ## 11. Issue Detail Template
 
@@ -247,7 +247,7 @@ Cần chọn database phù hợp giữa PostgreSQL, Cassandra và ClickHouse cho
 
 Đã chốt kiến trúc database: PostgreSQL cho core chat, ClickHouse cho analytics.
 
-### ISSUE-0003: WebSocket JWT handshake và subscribe authorization chưa hoàn chỉnh
+### ISSUE-0003: WebSocket JWT handshake và subscribe authorization
 
 | Field | Value |
 | --- | --- |
@@ -256,10 +256,10 @@ Cần chọn database phù hợp giữa PostgreSQL, Cassandra và ClickHouse cho
 | Type | RISK |
 | Priority | P1 |
 | Severity | S2 |
-| Status | OPEN |
+| Status | RESOLVED |
 | Owner | Backend |
 | Created | 2026-06-12 |
-| Updated | 2026-06-12 |
+| Updated | 2026-06-16 |
 
 #### Mô tả
 
@@ -279,18 +279,26 @@ Nếu không xử lý, client có thể subscribe topic conversation không thu�
 
 #### Hướng xử lý
 
-- [ ] Thêm `ChannelInterceptor` xử lý STOMP `CONNECT`.
-- [ ] Parse JWT từ native header `Authorization`.
-- [ ] Set `AuthenticatedUser` vào accessor user.
-- [ ] Chặn `SUBSCRIBE` tới `/topic/conversations/{conversationId}` nếu user không phải member.
+- [x] Thêm `ChannelInterceptor` xử lý STOMP `CONNECT`.
+- [x] Parse JWT từ native header `Authorization`.
+- [x] Set `AuthenticatedUser` vào accessor user.
+- [x] Chặn `SUBSCRIBE` tới `/topic/conversations/{conversationId}` nếu user không phải member.
 - [ ] Thêm integration test cho unauthorized subscribe.
 
 #### Kiểm thử cần chạy
 
-- [ ] Manual test WebSocket connect với token hợp lệ.
+- [x] Manual test WebSocket connect với token hợp lệ.
 - [ ] Manual test WebSocket connect không token.
 - [ ] Integration test subscribe conversation hợp lệ.
 - [ ] Integration test subscribe conversation không có quyền.
+
+#### Kết quả xử lý
+
+- `StompAuthenticationInterceptor` xác thực JWT từ STOMP `CONNECT` header và set `AuthenticatedUser` vào session.
+- Interceptor kiểm tra `SUBSCRIBE` tới `/topic/conversations/{conversationId}` bằng `ConversationMemberRepository`, user ngoài conversation bị từ chối.
+- `ChatWebSocketController` lấy user từ STOMP `Principal`, không phụ thuộc `SecurityContextHolder` trong thread xử lý message.
+- `WebSocketPresenceListener` dùng `simpSessionId` thay vì `MessageHeaders.getId()` để tránh `NullPointerException` khi publish `SessionConnectEvent`.
+- Backend compile/test pass bằng Maven Wrapper với Java runtime >= 21.
 
 ### ISSUE-0004: IntelliJ không nhận Maven project ở root
 

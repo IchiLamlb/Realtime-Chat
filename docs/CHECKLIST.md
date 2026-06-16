@@ -130,16 +130,16 @@ Ghi chú: Markdown mặc định không hỗ trợ checkbox `[~]` và `[!]` như
 
 - [x] Cấu hình endpoint `/ws`.
 - [x] Cấu hình STOMP message broker.
-- [!] Xác thực JWT khi WebSocket handshake - đã có skeleton, cần interceptor chuẩn.
+- [x] Xác thực JWT khi WebSocket handshake - đã có STOMP `CONNECT` interceptor set `AuthenticatedUser`.
 - [x] Subscribe conversation topic.
 - [x] Send message qua `/app/chat.sendMessage`.
 - [x] Broadcast message tới `/topic/conversations/{conversationId}`.
 - [x] Implement typing indicator.
 - [ ] Implement read message command.
 - [ ] Implement private notification queue.
-- [ ] Xử lý disconnect event.
+- [x] Xử lý disconnect event.
 - [ ] Xử lý reconnect client.
-- [!] Chặn subscribe trái phép vào conversation của user khác.
+- [x] Chặn subscribe trái phép vào conversation của user khác.
 - [ ] Viết WebSocket integration test cho gửi message.
 
 ## 9. Redis
@@ -179,12 +179,12 @@ Ghi chú: Markdown mặc định không hỗ trợ checkbox `[~]` và `[!]` như
 
 ## 11. Presence
 
-- [ ] Set user online khi WebSocket connect.
-- [ ] Set user offline khi WebSocket disconnect hết session.
-- [ ] Hỗ trợ nhiều session cho một user.
+- [x] Set user online khi WebSocket connect.
+- [x] Set user offline khi WebSocket disconnect hết session.
+- [x] Hỗ trợ nhiều session cho một user.
 - [ ] Publish event `chat.presence.changed`.
 - [ ] Broadcast online/offline tới conversation liên quan.
-- [ ] API lấy presence hiện tại của user.
+- [x] API lấy presence hiện tại của user.
 - [ ] Xử lý case heartbeat hết TTL.
 - [ ] Viết test nhiều session cùng user.
 - [ ] Viết test offline khi session cuối disconnect.
