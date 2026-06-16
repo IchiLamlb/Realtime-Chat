@@ -2,13 +2,18 @@ package com.example.realtimechat.auth.application;
 
 
 import com.example.realtimechat.auth.api.dto.AuthResponse;
+import com.example.realtimechat.auth.api.dto.ForgotPasswordRequest;
 import com.example.realtimechat.auth.api.dto.LoginRequest;
 import com.example.realtimechat.auth.api.dto.RefreshTokenRequest;
 import com.example.realtimechat.auth.api.dto.RegisterRequest;
+import com.example.realtimechat.auth.api.dto.ResetPasswordRequest;
+import com.example.realtimechat.auth.domain.PasswordResetToken;
 import com.example.realtimechat.auth.domain.RefreshToken;
+import com.example.realtimechat.auth.infrastructure.PasswordResetTokenRepository;
 import com.example.realtimechat.auth.infrastructure.RefreshTokenRepository;
 import com.example.realtimechat.auth.security.JwtService;
 import com.example.realtimechat.common.error.BusinessException;
+import com.example.realtimechat.config.MailProperties;
 import com.example.realtimechat.user.domain.User;
 import com.example.realtimechat.user.infrastructure.UserRepository;
 import com.example.realtimechat.user.api.dto.UserResponse;
@@ -32,6 +37,9 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
+    private final PasswordResetMailService passwordResetMailService;
+    private final MailProperties mailProperties;
     private final SecureRandom secureRandom = new SecureRandom();
 
     public AuthService(
@@ -39,13 +47,19 @@ public class AuthService {
             PasswordEncoder passwordEncoder,
             AuthenticationManager authenticationManager,
             JwtService jwtService,
-            RefreshTokenRepository refreshTokenRepository
+            RefreshTokenRepository refreshTokenRepository,
+            PasswordResetTokenRepository passwordResetTokenRepository,
+            PasswordResetMailService passwordResetMailService,
+            MailProperties mailProperties
     ) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
         this.jwtService = jwtService;
         this.refreshTokenRepository = refreshTokenRepository;
+        this.passwordResetTokenRepository = passwordResetTokenRepository;
+        this.passwordResetMailService = passwordResetMailService;
+        this.mailProperties = mailProperties;
     }
 
     @Transactional
@@ -89,6 +103,35 @@ public class AuthService {
         return tokenResponse(token.getUser());
     }
 
+    @Transactional
+    public void forgotPassword(ForgotPasswordRequest request) {
+        userRepository.findByEmail(request.email()).ifPresent(user -> {
+            String resetToken = generateSecureToken();
+            passwordResetTokenRepository.markUnusedTokensUsed(user, Instant.now());
+            passwordResetTokenRepository.save(new PasswordResetToken(
+                    user,
+                    hashToken(resetToken),
+                    Instant.now().plusSeconds(mailProperties.passwordResetTokenTtlMinutes() * 60)
+            ));
+            passwordResetMailService.sendResetLink(user, resetToken);
+        });
+    }
+
+    @Transactional
+    public void resetPassword(ResetPasswordRequest request) {
+        PasswordResetToken token = passwordResetTokenRepository.findByTokenHash(hashToken(request.token()))
+                .orElseThrow(() -> new BusinessException(HttpStatus.BAD_REQUEST, "INVALID_PASSWORD_RESET_TOKEN", "Invalid password reset token"));
+
+        if (token.getUsedAt() != null || token.getExpiresAt().isBefore(Instant.now())) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "INVALID_PASSWORD_RESET_TOKEN", "Invalid password reset token");
+        }
+
+        User user = token.getUser();
+        user.updatePasswordHash(passwordEncoder.encode(request.newPassword()));
+        token.markUsed();
+        refreshTokenRepository.revokeActiveTokens(user, Instant.now());
+    }
+
     private AuthResponse tokenResponse(User user) {
         String refreshToken = generateRefreshToken();
         RefreshToken savedRefreshToken = new RefreshToken(
@@ -106,6 +149,10 @@ public class AuthService {
     }
 
     private String generateRefreshToken() {
+        return generateSecureToken();
+    }
+
+    private String generateSecureToken() {
         byte[] bytes = new byte[64];
         secureRandom.nextBytes(bytes);
         return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);

@@ -23,7 +23,11 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
-@EnableConfigurationProperties(JwtProperties.class)
+@EnableConfigurationProperties({
+        JwtProperties.class,
+        MailProperties.class,
+        org.springframework.boot.autoconfigure.mail.MailProperties.class
+})
 public class SecurityConfig {
 
     @Bean

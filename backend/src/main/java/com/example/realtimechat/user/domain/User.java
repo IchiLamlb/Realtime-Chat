@@ -88,4 +88,8 @@ public class User extends BaseEntity {
         this.avatarUrl = avatarUrl;
         this.bio = bio;
     }
+
+    public void updatePasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
+    }
 }

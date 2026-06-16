@@ -65,6 +65,7 @@ Ghi chú: Markdown mặc định không hỗ trợ checkbox `[~]` và `[!]` như
 - [x] Sinh JWT access token.
 - [x] Sinh refresh token.
 - [x] Implement refresh access token.
+- [x] Implement quên mật khẩu và đặt lại mật khẩu qua email đăng ký.
 - [ ] Implement logout và revoke refresh token.
 - [x] Cấu hình Spring Security filter chain.
 - [x] Cấu hình JWT authentication filter.
@@ -115,16 +116,16 @@ Ghi chú: Markdown mặc định không hỗ trợ checkbox `[~]` và `[!]` như
 - [x] Entity message hỗ trợ type `SYSTEM`.
 - [x] Gửi tin nhắn text.
 - [x] Lưu tin nhắn vào PostgreSQL.
-- [ ] Sửa tin nhắn trong thời gian cho phép.
-- [ ] Xóa mềm tin nhắn.
+- [x] Sửa tin nhắn trong thời gian cho phép.
+- [x] Xóa mềm tin nhắn.
 - [x] Không cho user ngoài conversation đọc message.
 - [x] Không cho user ngoài conversation gửi message.
 - [x] Implement message status `SENT`.
-- [ ] Implement message status `DELIVERED`.
-- [ ] Implement message status `READ`.
-- [ ] Viết test gửi message thành công.
-- [ ] Viết test user không có quyền gửi message.
-- [ ] Viết test pagination lịch sử tin nhắn.
+- [x] Implement message status `DELIVERED`.
+- [x] Implement message status `READ`.
+- [x] Viết test gửi message thành công.
+- [x] Viết test user không có quyền gửi message.
+- [x] Viết test pagination lịch sử tin nhắn.
 
 ## 8. WebSocket Realtime
 
@@ -135,7 +136,8 @@ Ghi chú: Markdown mặc định không hỗ trợ checkbox `[~]` và `[!]` như
 - [x] Send message qua `/app/chat.sendMessage`.
 - [x] Broadcast message tới `/topic/conversations/{conversationId}`.
 - [x] Implement typing indicator.
-- [ ] Implement read message command.
+- [x] Implement delivered message command.
+- [x] Implement read message command.
 - [ ] Implement private notification queue.
 - [x] Xử lý disconnect event.
 - [ ] Xử lý reconnect client.

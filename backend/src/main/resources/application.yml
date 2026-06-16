@@ -4,6 +4,10 @@ server:
 spring:
   application:
     name: realtime-chat
+  config:
+    import:
+      - optional:file:.env[.properties]
+      - optional:file:../.env[.properties]
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/realtime_chat}
     username: ${DB_USERNAME:chat_user}
@@ -36,12 +40,30 @@ spring:
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
       properties:
         enable.idempotence: true
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:hellomeomoc@gmail.com}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: ${MAIL_SMTP_AUTH:true}
+          starttls:
+            enable: ${MAIL_SMTP_STARTTLS_ENABLE:true}
+            required: ${MAIL_SMTP_STARTTLS_REQUIRED:true}
+          ssl:
+            protocols: ${MAIL_SMTP_SSL_PROTOCOLS:TLSv1.2}
 
 app:
   jwt:
     secret: ${JWT_SECRET:change-this-secret-to-a-long-random-value-change-me}
     access-token-ttl-minutes: ${JWT_ACCESS_TOKEN_TTL_MINUTES:30}
     refresh-token-ttl-days: ${JWT_REFRESH_TOKEN_TTL_DAYS:7}
+  mail:
+    from: ${MAIL_FROM:hellomeomoc@gmail.com}
+    frontend-base-url: ${FRONTEND_BASE_URL:http://localhost:5173}
+    password-reset-token-ttl-minutes: ${PASSWORD_RESET_TOKEN_TTL_MINUTES:15}
   clickhouse:
     url: ${CLICKHOUSE_URL:jdbc:clickhouse://localhost:8123/realtime_chat_analytics}
     username: ${CLICKHOUSE_USER:analytics_user}
