@@ -1,14 +1,13 @@
 package com.example.realtimechat.message.api;
 
 
+import com.example.realtimechat.auth.application.CurrentUser;
+import com.example.realtimechat.common.api.ApiResponse;
+import com.example.realtimechat.message.api.dto.MessageHistoryResponse;
 import com.example.realtimechat.message.api.dto.MessageResponse;
 import com.example.realtimechat.message.api.dto.SendMessageRequest;
 import com.example.realtimechat.message.application.MessageService;
-import com.example.realtimechat.message.domain.Message;
-import com.example.realtimechat.auth.application.CurrentUser;
-import com.example.realtimechat.common.api.ApiResponse;
 import jakarta.validation.Valid;
-import java.util.List;
 import java.util.UUID;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -36,10 +35,11 @@ public class MessageController {
     }
 
     @GetMapping("/conversations/{conversationId}/messages")
-    ApiResponse<List<MessageResponse>> history(
+    ApiResponse<MessageHistoryResponse> history(
             @PathVariable UUID conversationId,
+            @RequestParam(required = false) UUID cursor,
             @RequestParam(defaultValue = "50") int limit
     ) {
-        return ApiResponse.ok("Messages found", messageService.history(currentUser.id(), conversationId, limit));
+        return ApiResponse.ok("Messages found", messageService.history(currentUser.id(), conversationId, cursor, limit));
     }
 }

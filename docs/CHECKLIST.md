@@ -108,7 +108,7 @@ Ghi chú: Markdown mặc định không hỗ trợ checkbox `[~]` và `[!]` như
 
 ## 7. Message Module
 
-- [~] API lấy lịch sử tin nhắn theo cursor pagination - hiện dùng limit đơn giản, chưa có cursor.
+- [x] API lấy lịch sử tin nhắn theo cursor pagination.
 - [x] Entity message hỗ trợ type `TEXT`.
 - [x] Entity message hỗ trợ type `IMAGE`.
 - [x] Entity message hỗ trợ type `FILE`.

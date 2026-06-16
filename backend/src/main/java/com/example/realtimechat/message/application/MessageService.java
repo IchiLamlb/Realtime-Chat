@@ -1,20 +1,21 @@
 package com.example.realtimechat.message.application;
 
 
+import com.example.realtimechat.common.error.BusinessException;
+import com.example.realtimechat.common.ratelimit.RateLimiter;
+import com.example.realtimechat.conversation.application.ConversationService;
+import com.example.realtimechat.conversation.domain.Conversation;
+import com.example.realtimechat.kafka.event.MessageCreatedEvent;
+import com.example.realtimechat.kafka.producer.ChatEventPublisher;
+import com.example.realtimechat.message.api.dto.MessageHistoryResponse;
 import com.example.realtimechat.message.api.dto.MessageResponse;
 import com.example.realtimechat.message.api.dto.SendMessageRequest;
 import com.example.realtimechat.message.domain.Message;
 import com.example.realtimechat.message.infrastructure.MessageRepository;
-import com.example.realtimechat.common.error.BusinessException;
-import com.example.realtimechat.common.ratelimit.RateLimiter;
-import com.example.realtimechat.conversation.domain.Conversation;
-import com.example.realtimechat.conversation.application.ConversationService;
-import com.example.realtimechat.kafka.producer.ChatEventPublisher;
-import com.example.realtimechat.kafka.event.MessageCreatedEvent;
-import com.example.realtimechat.user.domain.User;
 import com.example.realtimechat.user.application.UserService;
-import java.time.Instant;
+import com.example.realtimechat.user.domain.User;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
@@ -74,12 +75,34 @@ public class MessageService {
     }
 
     @Transactional(readOnly = true)
-    public List<MessageResponse> history(UUID currentUserId, UUID conversationId, int limit) {
+    public MessageHistoryResponse history(UUID currentUserId, UUID conversationId, UUID cursor, int limit) {
         conversationService.getAuthorizedConversation(conversationId, currentUserId);
         int safeLimit = Math.min(Math.max(limit, 1), 100);
-        return messageRepository.findByConversationIdOrderByCreatedAtDesc(conversationId, PageRequest.of(0, safeLimit))
+        List<Message> messages = fetchHistoryPage(conversationId, cursor, safeLimit + 1);
+        boolean hasMore = messages.size() > safeLimit;
+        List<Message> pageItems = hasMore ? messages.subList(0, safeLimit) : messages;
+        UUID nextCursor = hasMore ? pageItems.get(pageItems.size() - 1).getId() : null;
+        List<MessageResponse> items = pageItems
                 .stream()
                 .map(MessageResponse::from)
                 .toList();
+        return new MessageHistoryResponse(items, nextCursor, hasMore);
+    }
+
+    private List<Message> fetchHistoryPage(UUID conversationId, UUID cursor, int pageSize) {
+        if (cursor == null) {
+            return messageRepository.findByConversationIdOrderByCreatedAtDesc(conversationId, PageRequest.of(0, pageSize));
+        }
+
+        Message cursorMessage = messageRepository.findById(cursor)
+                .orElseThrow(() -> new BusinessException(HttpStatus.BAD_REQUEST, "INVALID_MESSAGE_CURSOR", "Message cursor not found"));
+        if (!conversationId.equals(cursorMessage.getConversation().getId())) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "INVALID_MESSAGE_CURSOR", "Message cursor does not belong to conversation");
+        }
+        return messageRepository.findByConversationIdAndCreatedAtBeforeOrderByCreatedAtDesc(
+                conversationId,
+                cursorMessage.getCreatedAt(),
+                PageRequest.of(0, pageSize)
+        );
     }
 }
