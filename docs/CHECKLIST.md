@@ -95,13 +95,13 @@ Ghi chú: Markdown mặc định không hỗ trợ checkbox `[~]` và `[!]` như
 - [x] API tạo group conversation.
 - [x] API lấy danh sách conversation của user.
 - [x] API lấy chi tiết conversation.
-- [ ] API đổi tên group.
-- [ ] API đổi avatar group.
-- [ ] API thêm member vào group.
-- [ ] API xóa member khỏi group.
-- [ ] API rời group.
-- [ ] API giải tán group.
-- [ ] Phân quyền owner/admin/member.
+- [x] API đổi tên group.
+- [x] API đổi avatar group.
+- [x] API thêm member vào group.
+- [x] API xóa member khỏi group.
+- [x] API rời group.
+- [x] API giải tán group.
+- [x] Phân quyền owner/admin/member.
 - [x] Chặn user không thuộc group truy cập conversation.
 - [ ] Viết test cho direct conversation.
 - [ ] Viết test cho group permission.

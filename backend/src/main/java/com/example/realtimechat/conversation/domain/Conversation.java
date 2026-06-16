@@ -64,4 +64,13 @@ public class Conversation extends BaseEntity {
     public User getCreatedBy() {
         return createdBy;
     }
+
+    public boolean isGroup() {
+        return ConversationType.GROUP.equals(type);
+    }
+
+    public void updateGroupProfile(String name, String avatarUrl) {
+        this.name = name;
+        this.avatarUrl = avatarUrl;
+    }
 }

@@ -19,6 +19,8 @@ public interface ConversationMemberRepository extends JpaRepository<Conversation
 
     List<ConversationMember> findByConversationId(UUID conversationId);
 
+    void deleteByConversationIdAndUserId(UUID conversationId, UUID userId);
+
     @Query("""
             select cm.conversation.id from ConversationMember cm
             where cm.conversation.type = 'DIRECT' and cm.user.id in (:firstUserId, :secondUserId)
