@@ -2,6 +2,11 @@
 
 Backend project mô phỏng hệ thống chat thời gian thực theo hướng event-driven, dùng Java Spring Boot, WebSocket, Kafka, Redis và Apache Flink. Mục tiêu là xây dựng một sản phẩm đủ nghiệp vụ, đủ hạ tầng và đủ chiều sâu kỹ thuật để thể hiện năng lực Java Backend trên CV.
 
+## GitHub Mapping
+
+- Backend: https://github.com/IchiLamlb/Realtime-Chat
+- Frontend: https://github.com/IchiLamlb/Realtime-Chat-Frontend
+
 ## 1. Mục Tiêu Dự Án
 
 ### Mục tiêu sản phẩm
