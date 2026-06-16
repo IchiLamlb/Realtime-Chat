@@ -145,6 +145,6 @@ service -> controller
 - Them integration tests voi Testcontainers.
 - Them GitHub Actions chay `./mvnw test`.
 - Them WebSocket/STOMP integration tests cho JWT connect va subscribe authorization.
-- Them refresh token/logout.
+- Them logout va revoke refresh token.
 - Them outbox/idempotency cho Kafka event.
 - Them metrics cho message delivery latency.

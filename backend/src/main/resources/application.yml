@@ -41,6 +41,7 @@ app:
   jwt:
     secret: ${JWT_SECRET:change-this-secret-to-a-long-random-value-change-me}
     access-token-ttl-minutes: ${JWT_ACCESS_TOKEN_TTL_MINUTES:30}
+    refresh-token-ttl-days: ${JWT_REFRESH_TOKEN_TTL_DAYS:7}
   clickhouse:
     url: ${CLICKHOUSE_URL:jdbc:clickhouse://localhost:8123/realtime_chat_analytics}
     username: ${CLICKHOUSE_USER:analytics_user}

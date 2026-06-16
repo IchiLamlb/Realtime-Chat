@@ -123,7 +123,7 @@ class StompAuthenticationInterceptorTest {
         private final AuthenticatedUser user;
 
         StubJwtService(AuthenticatedUser user) {
-            super(new JwtProperties("test-secret-value", 30));
+            super(new JwtProperties("test-secret-value", 30, 7));
             this.user = user;
         }
 

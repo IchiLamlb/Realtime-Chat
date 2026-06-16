@@ -63,8 +63,8 @@ Ghi chú: Markdown mặc định không hỗ trợ checkbox `[~]` và `[!]` như
 - [x] Hash password bằng BCrypt.
 - [x] Implement đăng nhập.
 - [x] Sinh JWT access token.
-- [ ] Sinh refresh token.
-- [ ] Implement refresh access token.
+- [x] Sinh refresh token.
+- [x] Implement refresh access token.
 - [ ] Implement logout và revoke refresh token.
 - [x] Cấu hình Spring Security filter chain.
 - [x] Cấu hình JWT authentication filter.
@@ -380,6 +380,6 @@ Ví dụ:
 
 ```markdown
 - [x] Implement đăng nhập.
-- [~] Implement refresh access token - còn thiếu test revoke token.
+- [x] Implement refresh access token - đã có refresh token rotation, còn thiếu logout/revoke endpoint và test riêng.
 - [!] Cấu hình Kafka advertised listeners cho local - Docker Desktop chưa resolve được hostname.
 ```

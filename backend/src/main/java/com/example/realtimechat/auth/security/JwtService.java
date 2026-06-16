@@ -46,6 +46,10 @@ public class JwtService {
         return username.equals(user.getUsername()) && parseClaims(token).getExpiration().after(new Date());
     }
 
+    public long refreshTokenTtlSeconds() {
+        return properties.refreshTokenTtlDays() * 24 * 60 * 60;
+    }
+
     private Claims parseClaims(String token) {
         return Jwts.parser()
                 .verifyWith(secretKey)

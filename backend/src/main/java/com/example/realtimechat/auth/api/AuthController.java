@@ -3,6 +3,7 @@ package com.example.realtimechat.auth.api;
 
 import com.example.realtimechat.auth.api.dto.AuthResponse;
 import com.example.realtimechat.auth.api.dto.LoginRequest;
+import com.example.realtimechat.auth.api.dto.RefreshTokenRequest;
 import com.example.realtimechat.auth.api.dto.RegisterRequest;
 import com.example.realtimechat.auth.application.AuthService;
 import com.example.realtimechat.common.api.ApiResponse;
@@ -30,5 +31,10 @@ public class AuthController {
     @PostMapping("/login")
     ApiResponse<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         return ApiResponse.ok("Logged in", authService.login(request));
+    }
+
+    @PostMapping("/refresh-token")
+    ApiResponse<AuthResponse> refreshToken(@Valid @RequestBody RefreshTokenRequest request) {
+        return ApiResponse.ok("Token refreshed", authService.refreshToken(request));
     }
 }
