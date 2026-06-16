@@ -1,7 +1,5 @@
 package com.example.realtimechat.config;
 
-
-import com.example.realtimechat.message.domain.Message;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -22,7 +20,22 @@ public class KafkaTopicConfig {
     }
 
     @Bean
+    NewTopic messageReadTopic(@Value("${app.kafka.topics.message-read}") String topic) {
+        return TopicBuilder.name(topic).partitions(3).replicas(1).build();
+    }
+
+    @Bean
     NewTopic presenceChangedTopic(@Value("${app.kafka.topics.presence-changed}") String topic) {
+        return TopicBuilder.name(topic).partitions(3).replicas(1).build();
+    }
+
+    @Bean
+    NewTopic notificationRequestedTopic(@Value("${app.kafka.topics.notification-requested}") String topic) {
+        return TopicBuilder.name(topic).partitions(3).replicas(1).build();
+    }
+
+    @Bean
+    NewTopic analyticsRawTopic(@Value("${app.kafka.topics.analytics-raw}") String topic) {
         return TopicBuilder.name(topic).partitions(3).replicas(1).build();
     }
 }

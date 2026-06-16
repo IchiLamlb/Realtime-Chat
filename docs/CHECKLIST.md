@@ -162,10 +162,10 @@ Ghi chú: Markdown mặc định không hỗ trợ checkbox `[~]` và `[!]` như
 - [x] Cấu hình Kafka consumer.
 - [x] Tạo topic `chat.message.created`.
 - [x] Tạo topic `chat.message.persisted`.
-- [ ] Tạo topic `chat.message.read`.
+- [x] Tạo topic `chat.message.read`.
 - [x] Tạo topic `chat.presence.changed`.
-- [ ] Tạo topic `chat.notification.requested`.
-- [ ] Tạo topic `chat.analytics.raw`.
+- [x] Tạo topic `chat.notification.requested`.
+- [x] Tạo topic `chat.analytics.raw`.
 - [x] Publish event khi user gửi message.
 - [~] Consumer lưu message từ event - hiện message lưu sync, consumer mới log event.
 - [ ] Publish event khi message đã persisted.

@@ -49,7 +49,10 @@ app:
     topics:
       message-created: chat.message.created
       message-persisted: chat.message.persisted
+      message-read: chat.message.read
       presence-changed: chat.presence.changed
+      notification-requested: chat.notification.requested
+      analytics-raw: chat.analytics.raw
 
 management:
   endpoints:
