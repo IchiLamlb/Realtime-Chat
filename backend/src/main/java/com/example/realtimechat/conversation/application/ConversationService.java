@@ -1,6 +1,7 @@
 package com.example.realtimechat.conversation.application;
 
 import com.example.realtimechat.conversation.api.dto.AddConversationMemberRequest;
+import com.example.realtimechat.conversation.api.dto.ConversationMemberResponse;
 import com.example.realtimechat.conversation.api.dto.ConversationResponse;
 import com.example.realtimechat.conversation.api.dto.CreateDirectConversationRequest;
 import com.example.realtimechat.conversation.api.dto.CreateGroupConversationRequest;
@@ -47,7 +48,7 @@ public class ConversationService {
 
         return memberRepository.findDirectConversationId(currentUserId, request.targetUserId())
                 .flatMap(conversationRepository::findById)
-                .map(ConversationResponse::from)
+                .map(this::toResponse)
                 .orElseGet(() -> createNewDirect(currentUserId, request.targetUserId()));
     }
 
@@ -65,19 +66,19 @@ public class ConversationService {
             MemberRole role = memberId.equals(currentUserId) ? MemberRole.OWNER : MemberRole.MEMBER;
             memberRepository.save(new ConversationMember(conversation, user, role));
         }
-        return ConversationResponse.from(conversation);
+        return toResponse(conversation);
     }
 
     @Transactional(readOnly = true)
     public List<ConversationResponse> list(UUID currentUserId) {
         return conversationRepository.findAllByMember(currentUserId).stream()
-                .map(ConversationResponse::from)
+                .map(this::toResponse)
                 .toList();
     }
 
     @Transactional(readOnly = true)
     public ConversationResponse detail(UUID currentUserId, UUID conversationId) {
-        return ConversationResponse.from(getAuthorizedConversation(conversationId, currentUserId));
+        return toResponse(getAuthorizedConversation(conversationId, currentUserId));
     }
 
     @Transactional
@@ -85,7 +86,7 @@ public class ConversationService {
         Conversation conversation = getAuthorizedGroupConversation(conversationId, currentUserId);
         requireManagerRole(conversationId, currentUserId);
         conversation.updateGroupProfile(request.name(), request.avatarUrl());
-        return ConversationResponse.from(conversation);
+        return toResponse(conversation);
     }
 
     @Transactional
@@ -97,7 +98,7 @@ public class ConversationService {
         }
         User user = userService.getById(request.userId());
         memberRepository.save(new ConversationMember(conversation, user, MemberRole.MEMBER));
-        return ConversationResponse.from(conversation);
+        return toResponse(conversation);
     }
 
     @Transactional
@@ -118,7 +119,7 @@ public class ConversationService {
         }
 
         memberRepository.deleteByConversationIdAndUserId(conversationId, memberId);
-        return ConversationResponse.from(conversation);
+        return toResponse(conversation);
     }
 
     @Transactional
@@ -156,7 +157,7 @@ public class ConversationService {
         Conversation conversation = conversationRepository.save(new Conversation(ConversationType.DIRECT, null, null, currentUser));
         memberRepository.save(new ConversationMember(conversation, currentUser, MemberRole.MEMBER));
         memberRepository.save(new ConversationMember(conversation, targetUser, MemberRole.MEMBER));
-        return ConversationResponse.from(conversation);
+        return toResponse(conversation);
     }
 
     private Conversation getAuthorizedGroupConversation(UUID conversationId, UUID userId) {
@@ -177,5 +178,12 @@ public class ConversationService {
     private ConversationMember getMember(UUID conversationId, UUID userId) {
         return memberRepository.findByConversationIdAndUserId(conversationId, userId)
                 .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "MEMBER_NOT_FOUND", "Conversation member not found"));
+    }
+
+    private ConversationResponse toResponse(Conversation conversation) {
+        List<ConversationMemberResponse> members = memberRepository.findByConversationId(conversation.getId()).stream()
+                .map(ConversationMemberResponse::from)
+                .toList();
+        return ConversationResponse.from(conversation, members);
     }
 }

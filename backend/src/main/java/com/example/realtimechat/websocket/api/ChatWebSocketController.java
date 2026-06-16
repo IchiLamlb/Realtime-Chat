@@ -3,6 +3,8 @@ package com.example.realtimechat.websocket.api;
 import com.example.realtimechat.auth.security.AuthenticatedUser;
 import com.example.realtimechat.common.error.BusinessException;
 import com.example.realtimechat.message.api.dto.MessageResponse;
+import com.example.realtimechat.message.api.dto.ReadMessageRequest;
+import com.example.realtimechat.message.api.dto.ReadReceiptResponse;
 import com.example.realtimechat.message.api.dto.SendMessageRequest;
 import com.example.realtimechat.message.application.MessageService;
 import com.example.realtimechat.presence.application.PresenceService;
@@ -46,6 +48,12 @@ public class ChatWebSocketController {
         presenceService.markTyping(request.conversationId(), userId);
         TypingEvent event = new TypingEvent(request.conversationId(), userId, request.typing(), Instant.now());
         messagingTemplate.convertAndSend("/topic/conversations/" + request.conversationId(), event);
+    }
+
+    @MessageMapping("/chat.readMessage")
+    public void readMessage(@Valid ReadMessageRequest request, Principal principal) {
+        ReadReceiptResponse response = messageService.markRead(currentUserId(principal), request.messageId());
+        messagingTemplate.convertAndSend("/topic/conversations/" + response.conversationId(), response);
     }
 
     private UUID currentUserId(Principal principal) {

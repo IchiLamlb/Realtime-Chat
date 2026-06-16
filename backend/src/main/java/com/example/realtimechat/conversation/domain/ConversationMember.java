@@ -66,4 +66,12 @@ public class ConversationMember {
     public MemberRole getRole() {
         return role;
     }
+
+    public Message getLastReadMessage() {
+        return lastReadMessage;
+    }
+
+    public void markRead(Message message) {
+        this.lastReadMessage = message;
+    }
 }

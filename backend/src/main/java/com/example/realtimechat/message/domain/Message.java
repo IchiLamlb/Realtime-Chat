@@ -60,6 +60,23 @@ public class Message extends BaseEntity {
         this.metadata = metadata == null ? Map.of() : metadata;
     }
 
+    public void edit(String content, Map<String, Object> metadata) {
+        this.content = content;
+        this.metadata = metadata == null ? Map.of() : metadata;
+    }
+
+    public void markDeleted() {
+        this.content = "";
+        this.metadata = Map.of();
+        this.status = MessageStatus.DELETED;
+    }
+
+    public void markRead() {
+        if (!MessageStatus.DELETED.equals(status)) {
+            this.status = MessageStatus.READ;
+        }
+    }
+
     public UUID getId() {
         return id;
     }
