@@ -9,5 +9,6 @@ out/
 *.local
 
 backend/target/
+frontend/
 
 docker-data/
