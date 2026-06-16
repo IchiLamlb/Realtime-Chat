@@ -94,7 +94,7 @@ Ghi chú: Markdown mặc định không hỗ trợ checkbox `[~]` và `[!]` như
 - [x] API lấy direct conversation đã tồn tại.
 - [x] API tạo group conversation.
 - [x] API lấy danh sách conversation của user.
-- [ ] API lấy chi tiết conversation.
+- [x] API lấy chi tiết conversation.
 - [ ] API đổi tên group.
 - [ ] API đổi avatar group.
 - [ ] API thêm member vào group.

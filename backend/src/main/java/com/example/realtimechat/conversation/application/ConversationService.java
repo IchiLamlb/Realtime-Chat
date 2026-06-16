@@ -76,6 +76,11 @@ public class ConversationService {
     }
 
     @Transactional(readOnly = true)
+    public ConversationResponse detail(UUID currentUserId, UUID conversationId) {
+        return ConversationResponse.from(getAuthorizedConversation(conversationId, currentUserId));
+    }
+
+    @Transactional(readOnly = true)
     public Conversation getAuthorizedConversation(UUID conversationId, UUID userId) {
         if (!memberRepository.existsByConversationIdAndUserId(conversationId, userId)) {
             throw new BusinessException(HttpStatus.FORBIDDEN, "CONVERSATION_ACCESS_DENIED", "User is not a conversation member");
