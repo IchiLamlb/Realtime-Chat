@@ -1,0 +1,3 @@
+ALTER TABLE conversations ADD COLUMN IF NOT EXISTS theme VARCHAR(50);
+ALTER TABLE conversations ADD COLUMN IF NOT EXISTS background_color VARCHAR(50);
+ALTER TABLE conversation_members ADD COLUMN IF NOT EXISTS nickname VARCHAR(100);

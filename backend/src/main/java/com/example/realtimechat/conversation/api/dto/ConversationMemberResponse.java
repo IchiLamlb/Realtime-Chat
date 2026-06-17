@@ -9,6 +9,7 @@ public record ConversationMemberResponse(
         String username,
         String displayName,
         String avatarUrl,
+        String nickname,
         MemberRole role
 ) {
     public static ConversationMemberResponse from(ConversationMember member) {
@@ -17,6 +18,7 @@ public record ConversationMemberResponse(
                 member.getUser().getUsername(),
                 member.getUser().getDisplayName(),
                 member.getUser().getAvatarUrl(),
+                member.getNickname(),
                 member.getRole()
         );
     }

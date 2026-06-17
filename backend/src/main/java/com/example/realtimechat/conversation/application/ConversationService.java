@@ -102,6 +102,24 @@ public class ConversationService {
     }
 
     @Transactional
+    public ConversationResponse updateSettings(UUID currentUserId, UUID conversationId, com.example.realtimechat.conversation.api.dto.UpdateConversationSettingsRequest request) {
+        Conversation conversation = getAuthorizedConversation(conversationId, currentUserId);
+        if (conversation.isGroup()) {
+            requireManagerRole(conversationId, currentUserId);
+        }
+        conversation.updateSettings(request.theme(), request.backgroundColor());
+        return toResponse(conversation);
+    }
+
+    @Transactional
+    public ConversationResponse updateNickname(UUID currentUserId, UUID conversationId, UUID targetUserId, com.example.realtimechat.conversation.api.dto.UpdateNicknameRequest request) {
+        Conversation conversation = getAuthorizedConversation(conversationId, currentUserId);
+        ConversationMember targetMember = getMember(conversationId, targetUserId);
+        targetMember.updateNickname(request.nickname());
+        return toResponse(conversation);
+    }
+
+    @Transactional
     public ConversationResponse addMember(UUID currentUserId, UUID conversationId, AddConversationMemberRequest request) {
         Conversation conversation = getAuthorizedGroupConversation(conversationId, currentUserId);
         requireManagerRole(conversationId, currentUserId);

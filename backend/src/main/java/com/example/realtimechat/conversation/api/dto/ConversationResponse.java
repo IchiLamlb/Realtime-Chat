@@ -12,6 +12,8 @@ public record ConversationResponse(
         ConversationType type,
         String name,
         String avatarUrl,
+        String theme,
+        String backgroundColor,
         UUID createdBy,
         Instant createdAt,
         List<ConversationMemberResponse> members
@@ -22,6 +24,8 @@ public record ConversationResponse(
                 conversation.getType(),
                 conversation.getName(),
                 conversation.getAvatarUrl(),
+                conversation.getTheme(),
+                conversation.getBackgroundColor(),
                 conversation.getCreatedBy().getId(),
                 conversation.getCreatedAt(),
                 members

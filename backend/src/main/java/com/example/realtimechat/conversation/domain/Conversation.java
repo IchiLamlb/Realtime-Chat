@@ -31,6 +31,12 @@ public class Conversation extends BaseEntity {
     @Column(name = "avatar_url")
     private String avatarUrl;
 
+    @Column(name = "theme")
+    private String theme;
+
+    @Column(name = "background_color")
+    private String backgroundColor;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "created_by")
     private User createdBy;
@@ -61,6 +67,14 @@ public class Conversation extends BaseEntity {
         return avatarUrl;
     }
 
+    public String getTheme() {
+        return theme;
+    }
+
+    public String getBackgroundColor() {
+        return backgroundColor;
+    }
+
     public User getCreatedBy() {
         return createdBy;
     }
@@ -72,5 +86,10 @@ public class Conversation extends BaseEntity {
     public void updateGroupProfile(String name, String avatarUrl) {
         this.name = name;
         this.avatarUrl = avatarUrl;
+    }
+
+    public void updateSettings(String theme, String backgroundColor) {
+        this.theme = theme;
+        this.backgroundColor = backgroundColor;
     }
 }

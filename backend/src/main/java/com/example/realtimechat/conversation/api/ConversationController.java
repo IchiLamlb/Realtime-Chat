@@ -66,6 +66,23 @@ public class ConversationController {
         return ApiResponse.ok("Group conversation updated", conversationService.updateGroup(currentUser.id(), conversationId, request));
     }
 
+    @PatchMapping("/{conversationId}/settings")
+    ApiResponse<ConversationResponse> updateSettings(
+            @PathVariable UUID conversationId,
+            @Valid @RequestBody com.example.realtimechat.conversation.api.dto.UpdateConversationSettingsRequest request
+    ) {
+        return ApiResponse.ok("Conversation settings updated", conversationService.updateSettings(currentUser.id(), conversationId, request));
+    }
+
+    @PatchMapping("/{conversationId}/members/{targetUserId}/nickname")
+    ApiResponse<ConversationResponse> updateNickname(
+            @PathVariable UUID conversationId,
+            @PathVariable UUID targetUserId,
+            @Valid @RequestBody com.example.realtimechat.conversation.api.dto.UpdateNicknameRequest request
+    ) {
+        return ApiResponse.ok("Nickname updated", conversationService.updateNickname(currentUser.id(), conversationId, targetUserId, request));
+    }
+
     @PostMapping("/{conversationId}/members")
     ApiResponse<ConversationResponse> addMember(
             @PathVariable UUID conversationId,

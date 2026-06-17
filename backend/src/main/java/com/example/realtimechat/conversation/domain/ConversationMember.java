@@ -42,6 +42,9 @@ public class ConversationMember {
     @JoinColumn(name = "last_read_message_id")
     private Message lastReadMessage;
 
+    @Column(name = "nickname")
+    private String nickname;
+
     protected ConversationMember() {
     }
 
@@ -75,7 +78,15 @@ public class ConversationMember {
         return lastReadMessage;
     }
 
+    public String getNickname() {
+        return nickname;
+    }
+
     public void markRead(Message message) {
         this.lastReadMessage = message;
+    }
+
+    public void updateNickname(String nickname) {
+        this.nickname = nickname;
     }
 }
