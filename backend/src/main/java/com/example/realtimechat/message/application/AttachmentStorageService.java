@@ -12,6 +12,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
@@ -27,6 +29,7 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 @Service
 public class AttachmentStorageService {
 
+    private static final Logger log = LoggerFactory.getLogger(AttachmentStorageService.class);
     private static final DateTimeFormatter DATE_PATH = DateTimeFormatter.ofPattern("yyyy/MM/dd");
 
     private final UploadProperties uploadProperties;
@@ -84,6 +87,7 @@ public class AttachmentStorageService {
                     .build();
             s3Client.putObject(request, RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
         } catch (IOException | SdkException exception) {
+            log.warn("Failed to store attachment in S3 bucket={} key={} endpoint={}", s3.bucket(), objectKey, s3.endpoint(), exception);
             throw new BusinessException(HttpStatus.INTERNAL_SERVER_ERROR, "ATTACHMENT_STORE_FAILED", "Could not store attachment");
         }
 
@@ -102,6 +106,7 @@ public class AttachmentStorageService {
             Files.createDirectories(targetDirectory);
             file.transferTo(targetFile);
         } catch (IOException exception) {
+            log.warn("Failed to store attachment locally at {}", targetFile, exception);
             throw new BusinessException(HttpStatus.INTERNAL_SERVER_ERROR, "ATTACHMENT_STORE_FAILED", "Could not store attachment");
         }
 

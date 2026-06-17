@@ -87,7 +87,7 @@ Cập nhật thủ công khi có issue mới hoặc khi issue đổi trạng th�
 | In progress | 0 |
 | Blocked | 0 |
 | Ready to verify | 0 |
-| Resolved | 6 |
+| Resolved | 7 |
 | P0/P1 active | 1 |
 
 ## 7. Active Issues
@@ -118,6 +118,7 @@ Cập nhật thủ công khi có issue mới hoặc khi issue đổi trạng th�
 | ISSUE-0007 | CL-01-10 | Refactor package theo layout enterprise | Tách package theo `api/application/domain/infrastructure` cho các domain chính | Docker Maven build | 2026-06-12 |
 | ISSUE-0008 | CL-01-11, CL-02-07 | PostgreSQL từ chối timezone `Asia/Saigon` khi Flyway mở connection | Ép JVM default timezone về `UTC` trước khi Spring Boot khởi tạo datasource | Docker Maven run | 2026-06-12 |
 | ISSUE-0003 | CL-08-03, CL-08-12, CL-11-01, CL-11-02, CL-11-03 | WebSocket JWT handshake, subscribe authorization và presence session lifecycle | Thêm STOMP `CONNECT` JWT interceptor, chặn `SUBSCRIBE` trái phép theo conversation membership, dùng `simpSessionId` cho presence connect/disconnect | `.\mvnw.cmd -pl backend test` | 2026-06-16 |
+| ISSUE-0009 | CL-16-02, CL-16-05, CL-16-07 | Upload attachment lỗi `Could not store attachment` sau khi chuyển sang S3-compatible storage | Bật MinIO local, init bucket `realtime-chat-uploads`, thêm cấu hình S3 vào `.env` và log root cause khi S3 put fail | MinIO health + bucket public check | 2026-06-17 |
 
 ## 11. Issue Detail Template
 
@@ -487,6 +488,48 @@ JVM local đang dùng timezone legacy `Asia/Saigon`. PostgreSQL không nhận gi
 
 - [x] Docker Maven build/test.
 - [x] Chạy backend với Docker Compose PostgreSQL để xác nhận Flyway migrate thành công.
+
+### ISSUE-0009: Upload attachment lỗi `Could not store attachment`
+
+| Field | Value |
+| --- | --- |
+| Checklist Ref | CL-16-02, CL-16-05, CL-16-07 |
+| Checklist Task | API upload file; Lưu file qua S3-compatible object storage; Trả file URL trong message metadata |
+| Type | ENV |
+| Priority | P1 |
+| Severity | S3 |
+| Status | RESOLVED |
+| Owner | Backend |
+| Created | 2026-06-17 |
+| Updated | 2026-06-17 |
+
+#### Mô tả
+
+Sau khi chuyển attachment storage từ local filesystem sang S3-compatible object storage, upload file trả lỗi chung `Could not store attachment`.
+
+#### Nguyên nhân gốc
+
+Local Docker stack đang chạy các service cũ nhưng chưa có container `minio` và `minio-init`, nên backend không có S3 endpoint/bucket để put object. File `.env` local cũng chưa khai báo rõ các biến `S3_*`, dù `application.yml` có default.
+
+#### Phạm vi ảnh hưởng
+
+- `POST /api/v1/messages/attachments`
+- `AttachmentStorageService`
+- MinIO local bucket `realtime-chat-uploads`
+
+#### Kết quả xử lý
+
+- Chạy `docker compose up -d minio minio-init`.
+- Xác nhận MinIO health tại `http://localhost:9002/minio/health/live` trả `200`.
+- Xác nhận bucket public `http://localhost:9002/realtime-chat-uploads/` truy cập được.
+- Thêm cấu hình `UPLOAD_STORAGE=S3` và các biến `S3_*` vào `.env` local.
+- Thêm log root cause trong `AttachmentStorageService` khi put S3/local file fail.
+
+#### Kiểm thử đã chạy
+
+- [x] MinIO container running.
+- [x] Bucket `realtime-chat-uploads` được tạo và set anonymous download.
+- [x] MinIO health endpoint trả `200`.
 
 ## 13. Checklist Section Map
 
