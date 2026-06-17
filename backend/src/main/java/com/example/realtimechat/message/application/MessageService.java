@@ -92,6 +92,7 @@ public class MessageService {
         ));
 
         publishMessageCreated(conversation.getId(), message, senderId);
+        conversationService.touch(conversation.getId());
         return MessageResponse.from(message);
     }
 
@@ -122,6 +123,7 @@ public class MessageService {
         ));
 
         publishMessageCreated(conversation.getId(), message, senderId);
+        conversationService.touch(conversation.getId());
         return MessageResponse.from(message);
     }
 

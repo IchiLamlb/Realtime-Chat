@@ -230,6 +230,11 @@ public class ConversationService {
                 .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "MEMBER_NOT_FOUND", "Conversation member not found"));
     }
 
+    @Transactional
+    public void touch(UUID conversationId) {
+        conversationRepository.updateUpdatedAt(conversationId, java.time.Instant.now());
+    }
+
     private ConversationResponse toResponse(Conversation conversation) {
         List<ConversationMemberResponse> members = memberRepository.findByConversationId(conversation.getId()).stream()
                 .map(ConversationMemberResponse::from)
@@ -237,3 +242,4 @@ public class ConversationService {
         return ConversationResponse.from(conversation, members);
     }
 }
+

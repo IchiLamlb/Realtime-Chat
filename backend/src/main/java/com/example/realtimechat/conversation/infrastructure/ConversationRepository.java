@@ -19,4 +19,9 @@ public interface ConversationRepository extends JpaRepository<Conversation, UUID
             order by c.updatedAt desc
             """)
     List<Conversation> findAllByMember(@Param("userId") UUID userId);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("update Conversation c set c.updatedAt = :updatedAt where c.id = :id")
+    void updateUpdatedAt(@Param("id") UUID id, @Param("updatedAt") java.time.Instant updatedAt);
 }
+
