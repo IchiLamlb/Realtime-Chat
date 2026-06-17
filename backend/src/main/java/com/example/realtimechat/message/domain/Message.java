@@ -71,6 +71,12 @@ public class Message extends BaseEntity {
         this.status = MessageStatus.DELETED;
     }
 
+    public void markDelivered() {
+        if (MessageStatus.SENT.equals(status)) {
+            this.status = MessageStatus.DELIVERED;
+        }
+    }
+
     public void markRead() {
         if (!MessageStatus.DELETED.equals(status)) {
             this.status = MessageStatus.READ;

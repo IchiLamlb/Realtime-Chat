@@ -354,8 +354,8 @@ Ghi chú: Markdown mặc định không hỗ trợ checkbox `[~]` và `[!]` như
 - [ ] Search message bằng Elasticsearch hoặc OpenSearch.
 - [ ] Push notification mobile.
 - [ ] Email notification.
-- [ ] Message reaction.
-- [ ] Reply message.
+- [x] Message reaction - backend reaction API/WebSocket và frontend emoji picker/action bar.
+- [x] Reply message - frontend gửi/render `metadata.replyTo`.
 - [ ] Pin message.
 - [ ] Mention user trong group.
 - [ ] Edit history cho message.

@@ -371,6 +371,8 @@ Message event mẫu:
 | GET | `/api/v1/conversations/{id}/messages?cursor=&limit=` | Lấy lịch sử tin nhắn |
 | PATCH | `/api/v1/messages/{id}` | Sửa tin nhắn |
 | DELETE | `/api/v1/messages/{id}` | Xóa tin nhắn |
+| POST | `/api/v1/messages/{id}/react` | Thả, đổi hoặc gỡ reaction |
+| POST | `/api/v1/messages/{id}/delivered` | Đánh dấu đã giao |
 | POST | `/api/v1/messages/{id}/read` | Đánh dấu đã đọc |
 
 ## 10. WebSocket Contract
@@ -394,7 +396,9 @@ Client send:
 ```text
 /app/chat.sendMessage
 /app/chat.typing
+/app/chat.deliverMessage
 /app/chat.readMessage
+/app/chat.reactMessage
 ```
 
 Payload gửi tin nhắn:
@@ -403,7 +407,15 @@ Payload gửi tin nhắn:
 {
   "conversationId": "7a45ab15-7f2d-4143-b495-f6e2bb1d3ef1",
   "type": "TEXT",
-  "content": "Hello team"
+  "content": "Hello team",
+  "metadata": {
+    "replyTo": {
+      "id": "fb8c3e9d-3a98-468c-9a3d-16cd3dfcc36e",
+      "senderName": "Alice",
+      "content": "Original message",
+      "type": "TEXT"
+    }
+  }
 }
 ```
 
@@ -415,6 +427,32 @@ Payload typing:
   "typing": true
 }
 ```
+
+Payload delivered/read:
+
+```json
+{
+  "messageId": "fb8c3e9d-3a98-468c-9a3d-16cd3dfcc36e"
+}
+```
+
+Payload reaction:
+
+```json
+{
+  "messageId": "fb8c3e9d-3a98-468c-9a3d-16cd3dfcc36e",
+  "emoji": "👍"
+}
+```
+
+## 10.1. Frontend Message Actions
+
+React frontend hiện có message action bar hiển thị khi hover vào bubble:
+
+- Reply: lưu preview vào composer và gửi trong `metadata.replyTo`.
+- Emoji: mở quick reaction picker và đẩy reaction qua REST/WebSocket.
+- More menu: hỗ trợ `Xóa phía mình` trên client và `Xóa tất cả` qua `DELETE /api/v1/messages/{id}`.
+- Deleted message được render bằng trạng thái `DELETED` thay vì nội dung cũ.
 
 ## 11. Luồng Xử Lý Gửi Tin Nhắn
 

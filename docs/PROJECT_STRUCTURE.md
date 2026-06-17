@@ -22,6 +22,10 @@ Realtime-Chat/
     src/main/java/com/example/realtimechat/
     src/main/resources/
     src/test/java/com/example/realtimechat/
+  frontend/
+    src/
+    package.json
+    vite.config.ts
   CHECKLIST.md
   ISSUES.md
   README.md
@@ -30,6 +34,20 @@ Realtime-Chat/
   mvnw.cmd
   pom.xml
 ```
+
+## 3.1. Cau Truc Frontend
+
+```text
+frontend/
+  src/
+    App.tsx
+    api.ts
+    types.ts
+    useChatSocket.ts
+    styles.css
+```
+
+Frontend la React/Vite client rieng, ket noi REST API va STOMP WebSocket cua backend. Message UI gom hover action bar, reply preview, emoji reaction picker, file/audio attachment rendering va delete controls.
 
 ## 3. Cau Truc Backend
 

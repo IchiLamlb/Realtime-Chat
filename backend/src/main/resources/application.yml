@@ -54,6 +54,10 @@ spring:
             required: ${MAIL_SMTP_STARTTLS_REQUIRED:true}
           ssl:
             protocols: ${MAIL_SMTP_SSL_PROTOCOLS:TLSv1.2}
+  servlet:
+    multipart:
+      max-file-size: ${MAX_UPLOAD_FILE_SIZE:100MB}
+      max-request-size: ${MAX_UPLOAD_REQUEST_SIZE:100MB}
 
 app:
   jwt:
@@ -64,6 +68,9 @@ app:
     from: ${MAIL_FROM:hellomeomoc@gmail.com}
     frontend-base-url: ${FRONTEND_BASE_URL:http://localhost:5173}
     password-reset-token-ttl-minutes: ${PASSWORD_RESET_TOKEN_TTL_MINUTES:15}
+  upload:
+    location: ${UPLOAD_DIR:uploads}
+    max-file-size: ${MAX_UPLOAD_FILE_SIZE:100MB}
   clickhouse:
     url: ${CLICKHOUSE_URL:jdbc:clickhouse://localhost:8123/realtime_chat_analytics}
     username: ${CLICKHOUSE_USER:analytics_user}

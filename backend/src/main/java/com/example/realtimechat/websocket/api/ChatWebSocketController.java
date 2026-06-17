@@ -2,12 +2,13 @@ package com.example.realtimechat.websocket.api;
 
 import com.example.realtimechat.auth.security.AuthenticatedUser;
 import com.example.realtimechat.common.error.BusinessException;
+import com.example.realtimechat.message.api.dto.MessageReceiptResponse;
 import com.example.realtimechat.message.api.dto.MessageResponse;
 import com.example.realtimechat.message.api.dto.ReadMessageRequest;
-import com.example.realtimechat.message.api.dto.ReadReceiptResponse;
 import com.example.realtimechat.message.api.dto.SendMessageRequest;
 import com.example.realtimechat.message.application.MessageService;
 import com.example.realtimechat.presence.application.PresenceService;
+import com.example.realtimechat.message.api.dto.ReactMessageRequest;
 import com.example.realtimechat.websocket.api.dto.TypingEvent;
 import com.example.realtimechat.websocket.api.dto.TypingRequest;
 import jakarta.validation.Valid;
@@ -52,7 +53,19 @@ public class ChatWebSocketController {
 
     @MessageMapping("/chat.readMessage")
     public void readMessage(@Valid ReadMessageRequest request, Principal principal) {
-        ReadReceiptResponse response = messageService.markRead(currentUserId(principal), request.messageId());
+        MessageReceiptResponse response = messageService.markRead(currentUserId(principal), request.messageId());
+        messagingTemplate.convertAndSend("/topic/conversations/" + response.conversationId(), response);
+    }
+
+    @MessageMapping("/chat.deliverMessage")
+    public void deliverMessage(@Valid ReadMessageRequest request, Principal principal) {
+        MessageReceiptResponse response = messageService.markDelivered(currentUserId(principal), request.messageId());
+        messagingTemplate.convertAndSend("/topic/conversations/" + response.conversationId(), response);
+    }
+
+    @MessageMapping("/chat.reactMessage")
+    public void reactMessage(@Valid ReactMessageRequest request, Principal principal) {
+        MessageResponse response = messageService.react(currentUserId(principal), request.messageId(), request.emoji());
         messagingTemplate.convertAndSend("/topic/conversations/" + response.conversationId(), response);
     }
 

@@ -10,9 +10,12 @@ import com.example.realtimechat.conversation.infrastructure.ConversationMemberRe
 import com.example.realtimechat.kafka.event.MessageCreatedEvent;
 import com.example.realtimechat.kafka.event.MessageReadEvent;
 import com.example.realtimechat.kafka.producer.ChatEventPublisher;
+import com.example.realtimechat.message.domain.MessageReaction;
+import com.example.realtimechat.message.infrastructure.MessageReactionRepository;
+import com.example.realtimechat.message.api.dto.MessageReactionResponse;
 import com.example.realtimechat.message.api.dto.MessageHistoryResponse;
+import com.example.realtimechat.message.api.dto.MessageReceiptResponse;
 import com.example.realtimechat.message.api.dto.MessageResponse;
-import com.example.realtimechat.message.api.dto.ReadReceiptResponse;
 import com.example.realtimechat.message.api.dto.SendMessageRequest;
 import com.example.realtimechat.message.api.dto.UpdateMessageRequest;
 import com.example.realtimechat.message.domain.Message;
@@ -25,12 +28,16 @@ import com.example.realtimechat.user.application.UserService;
 import com.example.realtimechat.user.domain.User;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class MessageService {
@@ -39,28 +46,34 @@ public class MessageService {
 
     private final MessageRepository messageRepository;
     private final MessageReceiptRepository receiptRepository;
+    private final MessageReactionRepository reactionRepository;
     private final ConversationMemberRepository memberRepository;
     private final ConversationService conversationService;
     private final UserService userService;
     private final ChatEventPublisher eventPublisher;
     private final RateLimiter rateLimiter;
+    private final AttachmentStorageService attachmentStorageService;
 
     public MessageService(
             MessageRepository messageRepository,
             MessageReceiptRepository receiptRepository,
+            MessageReactionRepository reactionRepository,
             ConversationMemberRepository memberRepository,
             ConversationService conversationService,
             UserService userService,
             ChatEventPublisher eventPublisher,
-            RateLimiter rateLimiter
+            RateLimiter rateLimiter,
+            AttachmentStorageService attachmentStorageService
     ) {
         this.messageRepository = messageRepository;
         this.receiptRepository = receiptRepository;
+        this.reactionRepository = reactionRepository;
         this.memberRepository = memberRepository;
         this.conversationService = conversationService;
         this.userService = userService;
         this.eventPublisher = eventPublisher;
         this.rateLimiter = rateLimiter;
+        this.attachmentStorageService = attachmentStorageService;
     }
 
     @Transactional
@@ -78,16 +91,37 @@ public class MessageService {
                 request.metadata()
         ));
 
-        eventPublisher.publishMessageCreated(new MessageCreatedEvent(
-                UUID.randomUUID(),
-                "MESSAGE_CREATED",
-                conversation.getId(),
-                message.getId(),
-                senderId,
-                message.getType(),
-                message.getContent(),
-                Instant.now()
+        publishMessageCreated(conversation.getId(), message, senderId);
+        return MessageResponse.from(message);
+    }
+
+    @Transactional
+    public MessageResponse sendAttachment(UUID senderId, UUID conversationId, MultipartFile file, String content) {
+        if (!rateLimiter.allow("rate:user:" + senderId + ":message", 60, Duration.ofMinutes(1))) {
+            throw new BusinessException(HttpStatus.TOO_MANY_REQUESTS, "MESSAGE_RATE_LIMITED", "Too many messages");
+        }
+
+        Conversation conversation = conversationService.getAuthorizedConversation(conversationId, senderId);
+        User sender = userService.getById(senderId);
+        StoredAttachment attachment = attachmentStorageService.store(file);
+
+        Map<String, Object> metadata = new LinkedHashMap<>();
+        metadata.put("url", attachment.url());
+        metadata.put("originalName", attachment.originalName());
+        metadata.put("storedName", attachment.storedName());
+        metadata.put("contentType", attachment.contentType());
+        metadata.put("size", attachment.size());
+
+        String messageContent = StringUtils.hasText(content) ? content.trim() : attachment.originalName();
+        Message message = messageRepository.save(new Message(
+                conversation,
+                sender,
+                attachment.image() ? MessageType.IMAGE : MessageType.FILE,
+                messageContent,
+                metadata
         ));
+
+        publishMessageCreated(conversation.getId(), message, senderId);
         return MessageResponse.from(message);
     }
 
@@ -99,9 +133,18 @@ public class MessageService {
         boolean hasMore = messages.size() > safeLimit;
         List<Message> pageItems = hasMore ? messages.subList(0, safeLimit) : messages;
         UUID nextCursor = hasMore ? pageItems.get(pageItems.size() - 1).getId() : null;
+
+        List<UUID> messageIds = pageItems.stream().map(Message::getId).toList();
+        List<MessageReaction> allReactions = reactionRepository.findByMessageIdIn(messageIds);
+        Map<UUID, List<MessageReactionResponse>> reactionsByMessageId = allReactions.stream()
+                .collect(java.util.stream.Collectors.groupingBy(
+                        r -> r.getMessage().getId(),
+                        java.util.stream.Collectors.mapping(MessageReactionResponse::from, java.util.stream.Collectors.toList())
+                ));
+
         List<MessageResponse> items = pageItems
                 .stream()
-                .map(MessageResponse::from)
+                .map(m -> MessageResponse.from(m, reactionsByMessageId.getOrDefault(m.getId(), List.of())))
                 .toList();
         return new MessageHistoryResponse(items, nextCursor, hasMore);
     }
@@ -114,7 +157,11 @@ public class MessageService {
         requireMutableWithinWindow(message);
         requireTextMessage(message);
         message.edit(request.content(), request.metadata());
-        return MessageResponse.from(message);
+        List<MessageReactionResponse> reactions = reactionRepository.findByMessageId(messageId)
+                .stream()
+                .map(MessageReactionResponse::from)
+                .toList();
+        return MessageResponse.from(message, reactions);
     }
 
     @Transactional
@@ -124,24 +171,68 @@ public class MessageService {
         requireSender(message, currentUserId);
         requireMutableWithinWindow(message);
         message.markDeleted();
-        return MessageResponse.from(message);
+        reactionRepository.deleteAll(reactionRepository.findByMessageId(messageId));
+        return MessageResponse.from(message, List.of());
     }
 
     @Transactional
-    public ReadReceiptResponse markRead(UUID currentUserId, UUID messageId) {
+    public MessageResponse react(UUID userId, UUID messageId, String emoji) {
+        Message message = getMessage(messageId);
+        conversationService.getAuthorizedConversation(message.getConversation().getId(), userId);
+
+        if (MessageStatus.DELETED.equals(message.getStatus())) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "MESSAGE_DELETED", "Cannot react to deleted message");
+        }
+
+        User user = userService.getById(userId);
+        java.util.Optional<MessageReaction> existingOpt = reactionRepository.findByMessageIdAndUserId(messageId, userId);
+
+        if (existingOpt.isPresent()) {
+            MessageReaction existing = existingOpt.get();
+            if (existing.getEmoji().equals(emoji) || emoji == null || emoji.isBlank()) {
+                reactionRepository.delete(existing);
+            } else {
+                existing.setEmoji(emoji);
+                reactionRepository.save(existing);
+            }
+        } else if (emoji != null && !emoji.isBlank()) {
+            reactionRepository.save(new MessageReaction(message, user, emoji));
+        }
+
+        List<MessageReactionResponse> reactions = reactionRepository.findByMessageId(messageId)
+                .stream()
+                .map(MessageReactionResponse::from)
+                .toList();
+
+        return MessageResponse.from(message, reactions);
+    }
+
+    @Transactional
+    public MessageReceiptResponse markDelivered(UUID currentUserId, UUID messageId) {
         Message message = getMessage(messageId);
         UUID conversationId = message.getConversation().getId();
         conversationService.getAuthorizedConversation(conversationId, currentUserId);
-        if (MessageStatus.DELETED.equals(message.getStatus())) {
-            throw new BusinessException(HttpStatus.BAD_REQUEST, "MESSAGE_DELETED", "Deleted message cannot be marked as read");
-        }
+        requireReadableMessage(message);
+
+        message.markDelivered();
+        MessageReceipt receipt = saveReceipt(message, userService.getById(currentUserId), MessageStatus.DELIVERED);
+        return MessageReceiptResponse.from(receipt);
+    }
+
+    @Transactional
+    public MessageReceiptResponse markRead(UUID currentUserId, UUID messageId) {
+        Message message = getMessage(messageId);
+        UUID conversationId = message.getConversation().getId();
+        conversationService.getAuthorizedConversation(conversationId, currentUserId);
+        requireReadableMessage(message);
 
         ConversationMember member = memberRepository.findByConversationIdAndUserId(conversationId, currentUserId)
                 .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "MEMBER_NOT_FOUND", "Conversation member not found"));
         member.markRead(message);
+        saveReceipt(message, userService.getById(currentUserId), MessageStatus.DELIVERED);
         message.markRead();
 
-        MessageReceipt receipt = saveReadReceipt(message, userService.getById(currentUserId));
+        MessageReceipt receipt = saveReceipt(message, userService.getById(currentUserId), MessageStatus.READ);
         eventPublisher.publishMessageRead(new MessageReadEvent(
                 UUID.randomUUID(),
                 "MESSAGE_READ",
@@ -150,7 +241,7 @@ public class MessageService {
                 currentUserId,
                 Instant.now()
         ));
-        return ReadReceiptResponse.from(receipt);
+        return MessageReceiptResponse.from(receipt);
     }
 
     private List<Message> fetchHistoryPage(UUID conversationId, UUID cursor, int pageSize) {
@@ -196,8 +287,27 @@ public class MessageService {
         }
     }
 
-    private MessageReceipt saveReadReceipt(Message message, User user) {
-        return receiptRepository.findByMessage_IdAndUser_IdAndStatus(message.getId(), user.getId(), MessageStatus.READ)
-                .orElseGet(() -> receiptRepository.save(new MessageReceipt(message, user, MessageStatus.READ)));
+    private void requireReadableMessage(Message message) {
+        if (MessageStatus.DELETED.equals(message.getStatus())) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "MESSAGE_DELETED", "Deleted message cannot be acknowledged");
+        }
+    }
+
+    private MessageReceipt saveReceipt(Message message, User user, MessageStatus status) {
+        return receiptRepository.findByMessage_IdAndUser_IdAndStatus(message.getId(), user.getId(), status)
+                .orElseGet(() -> receiptRepository.save(new MessageReceipt(message, user, status)));
+    }
+
+    private void publishMessageCreated(UUID conversationId, Message message, UUID senderId) {
+        eventPublisher.publishMessageCreated(new MessageCreatedEvent(
+                UUID.randomUUID(),
+                "MESSAGE_CREATED",
+                conversationId,
+                message.getId(),
+                senderId,
+                message.getType(),
+                message.getContent(),
+                Instant.now()
+        ));
     }
 }
