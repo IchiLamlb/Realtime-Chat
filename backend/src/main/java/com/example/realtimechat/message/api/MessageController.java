@@ -2,6 +2,7 @@ package com.example.realtimechat.message.api;
 
 
 import com.example.realtimechat.auth.application.CurrentUser;
+import com.example.realtimechat.assistant.application.AssistantService;
 import com.example.realtimechat.common.api.ApiResponse;
 import com.example.realtimechat.message.api.dto.ReactMessageRequest;
 import com.example.realtimechat.message.api.dto.MessageHistoryResponse;
@@ -34,20 +35,26 @@ public class MessageController {
     private final CurrentUser currentUser;
     private final MessageService messageService;
     private final SimpMessagingTemplate messagingTemplate;
+    private final AssistantService assistantService;
 
     public MessageController(
             CurrentUser currentUser,
             MessageService messageService,
-            SimpMessagingTemplate messagingTemplate
+            SimpMessagingTemplate messagingTemplate,
+            AssistantService assistantService
     ) {
         this.currentUser = currentUser;
         this.messageService = messageService;
         this.messagingTemplate = messagingTemplate;
+        this.assistantService = assistantService;
     }
 
     @PostMapping("/messages")
     ApiResponse<MessageResponse> send(@Valid @RequestBody SendMessageRequest request) {
-        return ApiResponse.ok("Message sent", messageService.send(currentUser.id(), request));
+        MessageResponse response = messageService.send(currentUser.id(), request);
+        messagingTemplate.convertAndSend("/topic/conversations/" + response.conversationId(), response);
+        assistantService.replyIfAssistantConversation(currentUser.id(), response);
+        return ApiResponse.ok("Message sent", response);
     }
 
     @PostMapping(value = "/messages/attachments", consumes = "multipart/form-data")
@@ -58,6 +65,7 @@ public class MessageController {
     ) {
         MessageResponse response = messageService.sendAttachment(currentUser.id(), conversationId, file, content);
         messagingTemplate.convertAndSend("/topic/conversations/" + response.conversationId(), response);
+        assistantService.replyIfAssistantConversation(currentUser.id(), response);
         return ApiResponse.ok("Attachment sent", response);
     }
 

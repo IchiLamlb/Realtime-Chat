@@ -1,6 +1,7 @@
 package com.example.realtimechat.websocket.api;
 
 import com.example.realtimechat.auth.security.AuthenticatedUser;
+import com.example.realtimechat.assistant.application.AssistantService;
 import com.example.realtimechat.common.error.BusinessException;
 import com.example.realtimechat.message.api.dto.MessageReceiptResponse;
 import com.example.realtimechat.message.api.dto.MessageResponse;
@@ -28,21 +29,26 @@ public class ChatWebSocketController {
     private final MessageService messageService;
     private final PresenceService presenceService;
     private final SimpMessagingTemplate messagingTemplate;
+    private final AssistantService assistantService;
 
     public ChatWebSocketController(
             MessageService messageService,
             PresenceService presenceService,
-            SimpMessagingTemplate messagingTemplate
+            SimpMessagingTemplate messagingTemplate,
+            AssistantService assistantService
     ) {
         this.messageService = messageService;
         this.presenceService = presenceService;
         this.messagingTemplate = messagingTemplate;
+        this.assistantService = assistantService;
     }
 
     @MessageMapping("/chat.sendMessage")
     public void sendMessage(@Valid SendMessageRequest request, Principal principal) {
-        MessageResponse response = messageService.send(currentUserId(principal), request);
+        UUID userId = currentUserId(principal);
+        MessageResponse response = messageService.send(userId, request);
         messagingTemplate.convertAndSend("/topic/conversations/" + response.conversationId(), response);
+        assistantService.replyIfAssistantConversation(userId, response);
     }
 
     @MessageMapping("/chat.typing")

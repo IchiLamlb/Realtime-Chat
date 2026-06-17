@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class PresenceService {
 
+    private static final UUID ASSISTANT_BOT_USER_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
     private static final Duration PRESENCE_TTL = Duration.ofSeconds(60);
     private static final Duration TYPING_TTL = Duration.ofSeconds(5);
 
@@ -36,6 +37,9 @@ public class PresenceService {
     }
 
     public PresenceResponse get(UUID userId) {
+        if (ASSISTANT_BOT_USER_ID.equals(userId)) {
+            return new PresenceResponse(userId, PresenceStatus.ONLINE);
+        }
         String value = redisTemplate.opsForValue().get(presenceKey(userId));
         PresenceStatus status = PresenceStatus.ONLINE.name().equals(value) ? PresenceStatus.ONLINE : PresenceStatus.OFFLINE;
         return new PresenceResponse(userId, status);

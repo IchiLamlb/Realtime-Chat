@@ -167,3 +167,14 @@ service -> controller
 - Them logout va revoke refresh token.
 - Them outbox/idempotency cho Kafka event.
 - Them metrics cho message delivery latency.
+
+## 9. Assistant Bot
+
+`assistant` la domain cho bot he thong **Realtime Assistant**.
+
+- Bot duoc seed thanh user `app_bot` bang Flyway migration.
+- Frontend co nut **Realtime Assistant** trong sidebar de mo conversation voi bot.
+- `ConversationService` tao hoac lay direct conversation giua user va bot qua `POST /api/v1/conversations/assistant`.
+- Khi user gui message trong conversation co bot, `AssistantService` tao message tra loi tu bot trong bang `messages`.
+- Bot tra loi realtime bang cung topic `/topic/conversations/{conversationId}` nen frontend render nhu tin nhan binh thuong.
+- Bot luu lich su hoi dap vao `assistant_messages` de phuc vu audit hoac cai tien logic sau nay.

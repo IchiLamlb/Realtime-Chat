@@ -7,6 +7,16 @@ Backend project mô phỏng hệ thống chat thời gian thực theo hướng e
 - Backend: https://github.com/IchiLamlb/Realtime-Chat
 - Frontend: https://github.com/IchiLamlb/Realtime-Chat-Frontend
 
+## Assistant Bot
+
+Ứng dụng có một bot hệ thống tên **Realtime Assistant**. Bot được seed bằng Flyway với user `app_bot` và luôn hiển thị online.
+
+- Người dùng bấm nút **Realtime Assistant** ở sidebar frontend để mở hoặc tạo direct conversation với bot.
+- Backend cũng tự đảm bảo mỗi user có một conversation với bot khi gọi `GET /api/v1/conversations`.
+- Có thể gọi chủ động endpoint `POST /api/v1/conversations/assistant` để lấy conversation bot.
+- Khi user gửi tin nhắn trong conversation có bot, backend tạo message trả lời từ bot trong cùng bảng `messages` và publish realtime lên `/topic/conversations/{conversationId}`.
+- Bot hiện hỗ trợ các câu hỏi vận hành như `help`, `status`, `tôi là ai`, `phòng này`, `login`, `file`, `group`, `websocket`, `không gửi được tin nhắn`.
+
 ## 1. Mục Tiêu Dự Án
 
 ### Mục tiêu sản phẩm

@@ -15,6 +15,7 @@ import com.example.realtimechat.conversation.infrastructure.ConversationReposito
 import com.example.realtimechat.common.error.BusinessException;
 import com.example.realtimechat.user.application.UserService;
 import com.example.realtimechat.user.domain.User;
+import com.example.realtimechat.user.infrastructure.UserRepository;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -26,18 +27,23 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class ConversationService {
 
+    private static final UUID ASSISTANT_BOT_USER_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
+
     private final ConversationRepository conversationRepository;
     private final ConversationMemberRepository memberRepository;
     private final UserService userService;
+    private final UserRepository userRepository;
 
     public ConversationService(
             ConversationRepository conversationRepository,
             ConversationMemberRepository memberRepository,
-            UserService userService
+            UserService userService,
+            UserRepository userRepository
     ) {
         this.conversationRepository = conversationRepository;
         this.memberRepository = memberRepository;
         this.userService = userService;
+        this.userRepository = userRepository;
     }
 
     @Transactional
@@ -69,11 +75,17 @@ public class ConversationService {
         return toResponse(conversation);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<ConversationResponse> list(UUID currentUserId) {
+        ensureAssistantConversation(currentUserId);
         return conversationRepository.findAllByMember(currentUserId).stream()
                 .map(this::toResponse)
                 .toList();
+    }
+
+    @Transactional
+    public ConversationResponse assistant(UUID currentUserId) {
+        return toResponse(ensureAssistantConversation(currentUserId));
     }
 
     @Transactional(readOnly = true)
@@ -158,6 +170,26 @@ public class ConversationService {
         memberRepository.save(new ConversationMember(conversation, currentUser, MemberRole.MEMBER));
         memberRepository.save(new ConversationMember(conversation, targetUser, MemberRole.MEMBER));
         return toResponse(conversation);
+    }
+
+    private Conversation ensureAssistantConversation(UUID currentUserId) {
+        if (ASSISTANT_BOT_USER_ID.equals(currentUserId)) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "INVALID_ASSISTANT_CONVERSATION", "Bot cannot chat with itself");
+        }
+
+        return memberRepository.findDirectConversationId(currentUserId, ASSISTANT_BOT_USER_ID)
+                .flatMap(conversationRepository::findById)
+                .orElseGet(() -> createAssistantConversation(currentUserId));
+    }
+
+    private Conversation createAssistantConversation(UUID currentUserId) {
+        User currentUser = userService.getById(currentUserId);
+        User assistant = userRepository.findById(ASSISTANT_BOT_USER_ID)
+                .orElseThrow(() -> new BusinessException(HttpStatus.INTERNAL_SERVER_ERROR, "ASSISTANT_BOT_NOT_FOUND", "Assistant bot user is not provisioned"));
+        Conversation conversation = conversationRepository.save(new Conversation(ConversationType.DIRECT, null, null, currentUser));
+        memberRepository.save(new ConversationMember(conversation, currentUser, MemberRole.MEMBER));
+        memberRepository.save(new ConversationMember(conversation, assistant, MemberRole.MEMBER));
+        return conversation;
     }
 
     private Conversation getAuthorizedGroupConversation(UUID conversationId, UUID userId) {

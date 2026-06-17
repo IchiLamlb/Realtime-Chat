@@ -93,6 +93,7 @@ Ghi chú: Markdown mặc định không hỗ trợ checkbox `[~]` và `[!]` như
 
 - [x] API tạo direct conversation.
 - [x] API lấy direct conversation đã tồn tại.
+- [x] API tạo/lấy direct conversation với bot `Realtime Assistant`.
 - [x] API tạo group conversation.
 - [x] API lấy danh sách conversation của user.
 - [x] API lấy chi tiết conversation.
@@ -109,6 +110,7 @@ Ghi chú: Markdown mặc định không hỗ trợ checkbox `[~]` và `[!]` như
 
 ## 7. Message Module
 
+- [x] Bot `Realtime Assistant` trả lời bằng message bình thường trong cùng conversation.
 - [x] API lấy lịch sử tin nhắn theo cursor pagination.
 - [x] Entity message hỗ trợ type `TEXT`.
 - [x] Entity message hỗ trợ type `IMAGE`.
@@ -181,6 +183,7 @@ Ghi chú: Markdown mặc định không hỗ trợ checkbox `[~]` và `[!]` như
 
 ## 11. Presence
 
+- [x] Bot `Realtime Assistant` luôn hiển thị online.
 - [x] Set user online khi WebSocket connect.
 - [x] Set user offline khi WebSocket disconnect hết session.
 - [x] Hỗ trợ nhiều session cho một user.

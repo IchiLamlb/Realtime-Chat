@@ -48,6 +48,11 @@ public class ConversationController {
         return ApiResponse.ok("Conversations found", conversationService.list(currentUser.id()));
     }
 
+    @PostMapping("/assistant")
+    ApiResponse<ConversationResponse> assistant() {
+        return ApiResponse.ok("Assistant conversation ready", conversationService.assistant(currentUser.id()));
+    }
+
     @GetMapping("/{conversationId}")
     ApiResponse<ConversationResponse> detail(@PathVariable UUID conversationId) {
         return ApiResponse.ok("Conversation found", conversationService.detail(currentUser.id(), conversationId));
