@@ -10,11 +10,16 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface MessageRepository extends JpaRepository<Message, UUID> {
 
-    List<Message> findByConversationIdOrderByCreatedAtDesc(UUID conversationId, Pageable pageable);
-
-    List<Message> findByConversationIdAndCreatedAtBeforeOrderByCreatedAtDesc(
+    List<Message> findByConversationIdAndCreatedAtGreaterThanEqualOrderByCreatedAtDesc(
             UUID conversationId,
-            Instant createdAt,
+            Instant joinedAt,
+            Pageable pageable
+    );
+
+    List<Message> findByConversationIdAndCreatedAtBeforeAndCreatedAtGreaterThanEqualOrderByCreatedAtDesc(
+            UUID conversationId,
+            Instant cursorCreatedAt,
+            Instant joinedAt,
             Pageable pageable
     );
 }

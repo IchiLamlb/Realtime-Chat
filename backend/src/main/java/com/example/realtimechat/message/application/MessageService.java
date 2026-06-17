@@ -128,8 +128,10 @@ public class MessageService {
     @Transactional(readOnly = true)
     public MessageHistoryResponse history(UUID currentUserId, UUID conversationId, UUID cursor, int limit) {
         conversationService.getAuthorizedConversation(conversationId, currentUserId);
+        ConversationMember member = memberRepository.findByConversationIdAndUserId(conversationId, currentUserId)
+                .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "MEMBER_NOT_FOUND", "Conversation member not found"));
         int safeLimit = Math.min(Math.max(limit, 1), 100);
-        List<Message> messages = fetchHistoryPage(conversationId, cursor, safeLimit + 1);
+        List<Message> messages = fetchHistoryPage(conversationId, cursor, member.getJoinedAt(), safeLimit + 1);
         boolean hasMore = messages.size() > safeLimit;
         List<Message> pageItems = hasMore ? messages.subList(0, safeLimit) : messages;
         UUID nextCursor = hasMore ? pageItems.get(pageItems.size() - 1).getId() : null;
@@ -244,9 +246,13 @@ public class MessageService {
         return MessageReceiptResponse.from(receipt);
     }
 
-    private List<Message> fetchHistoryPage(UUID conversationId, UUID cursor, int pageSize) {
+    private List<Message> fetchHistoryPage(UUID conversationId, UUID cursor, Instant joinedAt, int pageSize) {
         if (cursor == null) {
-            return messageRepository.findByConversationIdOrderByCreatedAtDesc(conversationId, PageRequest.of(0, pageSize));
+            return messageRepository.findByConversationIdAndCreatedAtGreaterThanEqualOrderByCreatedAtDesc(
+                    conversationId,
+                    joinedAt,
+                    PageRequest.of(0, pageSize)
+            );
         }
 
         Message cursorMessage = messageRepository.findById(cursor)
@@ -254,9 +260,10 @@ public class MessageService {
         if (!conversationId.equals(cursorMessage.getConversation().getId())) {
             throw new BusinessException(HttpStatus.BAD_REQUEST, "INVALID_MESSAGE_CURSOR", "Message cursor does not belong to conversation");
         }
-        return messageRepository.findByConversationIdAndCreatedAtBeforeOrderByCreatedAtDesc(
+        return messageRepository.findByConversationIdAndCreatedAtBeforeAndCreatedAtGreaterThanEqualOrderByCreatedAtDesc(
                 conversationId,
                 cursorMessage.getCreatedAt(),
+                joinedAt,
                 PageRequest.of(0, pageSize)
         );
     }

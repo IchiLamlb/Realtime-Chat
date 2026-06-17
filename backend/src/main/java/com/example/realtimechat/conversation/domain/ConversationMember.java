@@ -67,6 +67,10 @@ public class ConversationMember {
         return role;
     }
 
+    public Instant getJoinedAt() {
+        return joinedAt;
+    }
+
     public Message getLastReadMessage() {
         return lastReadMessage;
     }

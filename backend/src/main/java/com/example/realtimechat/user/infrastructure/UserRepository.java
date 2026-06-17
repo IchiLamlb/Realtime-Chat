@@ -17,5 +17,9 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     boolean existsByEmail(String email);
 
-    List<User> findTop20ByUsernameContainingIgnoreCaseOrEmailContainingIgnoreCase(String username, String email);
+    List<User> findTop20ByUsernameContainingIgnoreCaseOrEmailContainingIgnoreCaseOrDisplayNameContainingIgnoreCase(
+            String username,
+            String email,
+            String displayName
+    );
 }

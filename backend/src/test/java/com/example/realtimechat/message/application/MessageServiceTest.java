@@ -225,8 +225,14 @@ class MessageServiceTest {
         Message first = message(firstId);
         Message second = message(secondId);
         Message third = message(thirdId);
+        ConversationMember member = memberJoinedAt(RECIPIENT_ID, Instant.parse("2026-06-15T00:00:00Z"));
         when(conversationService.getAuthorizedConversation(CONVERSATION_ID, RECIPIENT_ID)).thenReturn(conversation);
-        when(messageRepository.findByConversationIdOrderByCreatedAtDesc(CONVERSATION_ID, PageRequest.of(0, 3)))
+        when(memberRepository.findByConversationIdAndUserId(CONVERSATION_ID, RECIPIENT_ID)).thenReturn(Optional.of(member));
+        when(messageRepository.findByConversationIdAndCreatedAtGreaterThanEqualOrderByCreatedAtDesc(
+                CONVERSATION_ID,
+                Instant.parse("2026-06-15T00:00:00Z"),
+                PageRequest.of(0, 3)
+        ))
                 .thenReturn(List.of(first, second, third));
         when(reactionRepository.findByMessageIdIn(List.of(firstId, secondId)))
                 .thenReturn(List.of());
@@ -236,6 +242,33 @@ class MessageServiceTest {
         assertThat(response.items()).extracting(MessageResponse::id).containsExactly(firstId, secondId);
         assertThat(response.hasMore()).isTrue();
         assertThat(response.nextCursor()).isEqualTo(secondId);
+    }
+
+    @Test
+    void historyStartsAtMemberJoinTime() {
+        Instant joinedAt = Instant.parse("2026-06-16T10:00:00Z");
+        UUID visibleId = UUID.fromString("6ebf9ba7-6099-49d6-9bc8-5de71fd75a74");
+        Message visible = message(visibleId);
+        ConversationMember member = memberJoinedAt(RECIPIENT_ID, joinedAt);
+        when(conversationService.getAuthorizedConversation(CONVERSATION_ID, RECIPIENT_ID)).thenReturn(conversation);
+        when(memberRepository.findByConversationIdAndUserId(CONVERSATION_ID, RECIPIENT_ID)).thenReturn(Optional.of(member));
+        when(messageRepository.findByConversationIdAndCreatedAtGreaterThanEqualOrderByCreatedAtDesc(
+                CONVERSATION_ID,
+                joinedAt,
+                PageRequest.of(0, 51)
+        ))
+                .thenReturn(List.of(visible));
+        when(reactionRepository.findByMessageIdIn(List.of(visibleId)))
+                .thenReturn(List.of());
+
+        MessageHistoryResponse response = messageService.history(RECIPIENT_ID, CONVERSATION_ID, null, 50);
+
+        assertThat(response.items()).extracting(MessageResponse::id).containsExactly(visibleId);
+        verify(messageRepository).findByConversationIdAndCreatedAtGreaterThanEqualOrderByCreatedAtDesc(
+                CONVERSATION_ID,
+                joinedAt,
+                PageRequest.of(0, 51)
+        );
     }
 
     private Message message(MessageStatus status) {
@@ -270,6 +303,13 @@ class MessageServiceTest {
         ReflectionTestUtils.setField(conversation, "id", id);
         setTimestamps(conversation);
         return conversation;
+    }
+
+    private ConversationMember memberJoinedAt(UUID userId, Instant joinedAt) {
+        User user = userId.equals(SENDER_ID) ? sender : recipient;
+        ConversationMember member = new ConversationMember(conversation, user, MemberRole.MEMBER);
+        ReflectionTestUtils.setField(member, "joinedAt", joinedAt);
+        return member;
     }
 
     private void setEntityFields(Message message, UUID id) {

@@ -362,7 +362,7 @@ Message event mẫu:
 | --- | --- | --- |
 | GET | `/api/v1/users/me` | Lấy profile hiện tại |
 | PATCH | `/api/v1/users/me` | Cập nhật profile |
-| GET | `/api/v1/users/search?keyword=` | Tìm kiếm user |
+| GET | `/api/v1/users/search?keyword=` | Tim kiem user theo username, email hoac display name |
 | GET | `/api/v1/users/{id}/presence` | Lấy trạng thái online |
 
 ### Conversation
@@ -370,7 +370,7 @@ Message event mẫu:
 | Method | Endpoint | Mô tả |
 | --- | --- | --- |
 | POST | `/api/v1/conversations/direct` | Tạo hoặc lấy direct chat |
-| POST | `/api/v1/conversations/group` | Tạo group chat |
+| POST | `/api/v1/conversations/group` | Tao group chat; frontend tao qua modal nhap ten nhom, tim kiem/chon member va bam Create |
 | GET | `/api/v1/conversations` | Danh sách conversation của user |
 | GET | `/api/v1/conversations/{id}` | Chi tiết conversation |
 | POST | `/api/v1/conversations/{id}/members` | Thêm member |
@@ -380,7 +380,7 @@ Message event mẫu:
 
 | Method | Endpoint | Mô tả |
 | --- | --- | --- |
-| GET | `/api/v1/conversations/{id}/messages?cursor=&limit=` | Lấy lịch sử tin nhắn |
+| GET | `/api/v1/conversations/{id}/messages?cursor=&limit=` | Lay lich su tin nhan; member moi chi thay tin nhan tu thoi diem joined_at |
 | PATCH | `/api/v1/messages/{id}` | Sửa tin nhắn |
 | DELETE | `/api/v1/messages/{id}` | Xóa tin nhắn |
 | POST | `/api/v1/messages/{id}/react` | Thả, đổi hoặc gỡ reaction |

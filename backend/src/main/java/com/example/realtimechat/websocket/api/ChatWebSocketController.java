@@ -3,6 +3,7 @@ package com.example.realtimechat.websocket.api;
 import com.example.realtimechat.auth.security.AuthenticatedUser;
 import com.example.realtimechat.assistant.application.AssistantService;
 import com.example.realtimechat.common.error.BusinessException;
+import com.example.realtimechat.conversation.application.ConversationService;
 import com.example.realtimechat.message.api.dto.MessageReceiptResponse;
 import com.example.realtimechat.message.api.dto.MessageResponse;
 import com.example.realtimechat.message.api.dto.ReadMessageRequest;
@@ -30,17 +31,20 @@ public class ChatWebSocketController {
     private final PresenceService presenceService;
     private final SimpMessagingTemplate messagingTemplate;
     private final AssistantService assistantService;
+    private final ConversationService conversationService;
 
     public ChatWebSocketController(
             MessageService messageService,
             PresenceService presenceService,
             SimpMessagingTemplate messagingTemplate,
-            AssistantService assistantService
+            AssistantService assistantService,
+            ConversationService conversationService
     ) {
         this.messageService = messageService;
         this.presenceService = presenceService;
         this.messagingTemplate = messagingTemplate;
         this.assistantService = assistantService;
+        this.conversationService = conversationService;
     }
 
     @MessageMapping("/chat.sendMessage")
@@ -54,6 +58,7 @@ public class ChatWebSocketController {
     @MessageMapping("/chat.typing")
     public void typing(@Valid TypingRequest request, Principal principal) {
         UUID userId = currentUserId(principal);
+        conversationService.getAuthorizedConversation(request.conversationId(), userId);
         presenceService.markTyping(request.conversationId(), userId);
         TypingEvent event = new TypingEvent(request.conversationId(), userId, request.typing(), Instant.now());
         messagingTemplate.convertAndSend("/topic/conversations/" + request.conversationId(), event);
@@ -80,6 +85,7 @@ public class ChatWebSocketController {
     @MessageMapping("/chat.webrtc")
     public void webrtcSignal(@Valid WebRTCSignalRequest request, Principal principal) {
         UUID userId = currentUserId(principal);
+        conversationService.getAuthorizedConversation(request.conversationId(), userId);
         WebRTCSignalEvent event = new WebRTCSignalEvent(
                 request.conversationId(),
                 userId,

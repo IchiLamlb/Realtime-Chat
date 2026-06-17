@@ -39,7 +39,11 @@ public class UserService {
         if (safeKeyword.length() < 2) {
             return List.of();
         }
-        return userRepository.findTop20ByUsernameContainingIgnoreCaseOrEmailContainingIgnoreCase(safeKeyword, safeKeyword)
+        return userRepository.findTop20ByUsernameContainingIgnoreCaseOrEmailContainingIgnoreCaseOrDisplayNameContainingIgnoreCase(
+                        safeKeyword,
+                        safeKeyword,
+                        safeKeyword
+                )
                 .stream()
                 .map(UserResponse::from)
                 .toList();
