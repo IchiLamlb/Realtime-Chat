@@ -9,6 +9,7 @@ Tai lieu nay mo ta cau truc hien tai cua Real-time Chat Platform theo huong ente
 - Moi domain tach ro `api`, `application`, `domain`, `infrastructure`.
 - Business logic khong phu thuoc nguoc vao REST/WebSocket/Kafka adapter.
 - PostgreSQL phuc vu OLTP/core chat, ClickHouse phuc vu analytics.
+- S3-compatible object storage phuc vu attachment binary; database chi luu metadata/URL.
 - Co architecture tests de chan dependency sai tang khi project lon dan.
 
 ## 2. Cau Truc Root

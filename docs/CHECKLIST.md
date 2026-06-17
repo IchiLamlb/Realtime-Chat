@@ -238,13 +238,13 @@ Ghi chú: Markdown mặc định không hỗ trợ checkbox `[~]` và `[!]` như
 
 ## 16. File Và Media
 
-- [ ] Thiết kế message metadata cho file/image.
-- [ ] API upload file.
+- [x] Thiết kế message metadata cho file/image.
+- [x] API upload file.
 - [ ] Validate file size.
 - [ ] Validate file type.
-- [ ] Lưu file local cho MVP.
-- [ ] Mở rộng lưu S3 hoặc MinIO.
-- [ ] Trả file URL trong message metadata.
+- [x] Lưu file qua S3-compatible object storage.
+- [x] Mở rộng lưu S3 hoặc MinIO.
+- [x] Trả file URL trong message metadata.
 - [ ] Viết test upload file.
 
 ## 17. Error Handling

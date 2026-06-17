@@ -23,6 +23,7 @@
         <clickhouse-jdbc.version>0.6.5</clickhouse-jdbc.version>
         <testcontainers.version>1.20.3</testcontainers.version>
         <archunit.version>1.3.0</archunit.version>
+        <aws-sdk.version>2.25.70</aws-sdk.version>
     </properties>
 
     <dependencies>
@@ -79,6 +80,11 @@
             <groupId>com.clickhouse</groupId>
             <artifactId>clickhouse-jdbc</artifactId>
             <version>${clickhouse-jdbc.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>s3</artifactId>
+            <version>${aws-sdk.version}</version>
         </dependency>
         <dependency>
             <groupId>io.jsonwebtoken</groupId>

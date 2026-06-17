@@ -266,6 +266,8 @@ Khi cần nâng cấp portfolio, có thể tách thành microservices:
 | created_at | TIMESTAMP | Thời điểm gửi |
 | updated_at | TIMESTAMP | Thời điểm cập nhật |
 
+Attachment binary không lưu trong PostgreSQL. Backend upload file vào S3-compatible object storage và chỉ lưu URL/metadata trong `messages.metadata`.
+
 ### message_receipts
 
 | Column | Type | Ghi chú |
@@ -633,6 +635,15 @@ KAFKA_BOOTSTRAP_SERVERS=kafka:9092
 JWT_SECRET=change-this-secret-to-a-long-random-value
 JWT_ACCESS_TOKEN_TTL_MINUTES=30
 JWT_REFRESH_TOKEN_TTL_DAYS=7
+
+UPLOAD_STORAGE=S3
+S3_ENDPOINT=http://localhost:9002
+S3_REGION=us-east-1
+S3_BUCKET=realtime-chat-uploads
+S3_PUBLIC_BASE_URL=http://localhost:9002/realtime-chat-uploads
+S3_ACCESS_KEY=minioadmin
+S3_SECRET_KEY=minioadmin
+S3_PATH_STYLE_ACCESS=true
 ```
 
 ### 14.5. Docker Compose mẫu
@@ -732,6 +743,14 @@ Kiểm tra container:
 ```bash
 docker compose ps
 ```
+
+MinIO console chạy tại:
+
+```text
+http://localhost:9001
+```
+
+Bucket local mặc định là `realtime-chat-uploads`. Production có thể thay các biến `S3_*` để dùng AWS S3, Cloudflare R2 hoặc MinIO managed; database vẫn chỉ lưu metadata và URL.
 
 ### 14.6. Chạy backend
 

@@ -10,5 +10,6 @@ out/
 
 backend/target/
 frontend/
+uploads/
 
 docker-data/
