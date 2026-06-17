@@ -11,6 +11,8 @@ import com.example.realtimechat.presence.application.PresenceService;
 import com.example.realtimechat.message.api.dto.ReactMessageRequest;
 import com.example.realtimechat.websocket.api.dto.TypingEvent;
 import com.example.realtimechat.websocket.api.dto.TypingRequest;
+import com.example.realtimechat.websocket.api.dto.WebRTCSignalEvent;
+import com.example.realtimechat.websocket.api.dto.WebRTCSignalRequest;
 import jakarta.validation.Valid;
 import java.security.Principal;
 import java.time.Instant;
@@ -67,6 +69,19 @@ public class ChatWebSocketController {
     public void reactMessage(@Valid ReactMessageRequest request, Principal principal) {
         MessageResponse response = messageService.react(currentUserId(principal), request.messageId(), request.emoji());
         messagingTemplate.convertAndSend("/topic/conversations/" + response.conversationId(), response);
+    }
+
+    @MessageMapping("/chat.webrtc")
+    public void webrtcSignal(@Valid WebRTCSignalRequest request, Principal principal) {
+        UUID userId = currentUserId(principal);
+        WebRTCSignalEvent event = new WebRTCSignalEvent(
+                request.conversationId(),
+                userId,
+                request.type(),
+                request.payload(),
+                Instant.now()
+        );
+        messagingTemplate.convertAndSend("/topic/conversations/" + request.conversationId(), event);
     }
 
     private UUID currentUserId(Principal principal) {
