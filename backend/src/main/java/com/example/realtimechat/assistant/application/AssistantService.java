@@ -5,6 +5,7 @@ import com.example.realtimechat.assistant.infrastructure.AssistantMessageReposit
 import com.example.realtimechat.conversation.domain.Conversation;
 import com.example.realtimechat.conversation.infrastructure.ConversationMemberRepository;
 import com.example.realtimechat.kafka.event.MessageCreatedEvent;
+import com.example.realtimechat.kafka.event.MessagePersistedEvent;
 import com.example.realtimechat.kafka.producer.ChatEventPublisher;
 import com.example.realtimechat.message.api.dto.MessageResponse;
 import com.example.realtimechat.message.domain.Message;
@@ -22,6 +23,7 @@ import java.util.UUID;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.example.realtimechat.message.application.MessageService;
 
 @Service
 public class AssistantService {
@@ -35,6 +37,7 @@ public class AssistantService {
     private final MessageRepository messageRepository;
     private final ChatEventPublisher eventPublisher;
     private final SimpMessagingTemplate messagingTemplate;
+    private final MessageService messageService;
 
     public AssistantService(
             AssistantMessageRepository assistantMessageRepository,
@@ -43,7 +46,8 @@ public class AssistantService {
             ConversationMemberRepository memberRepository,
             MessageRepository messageRepository,
             ChatEventPublisher eventPublisher,
-            SimpMessagingTemplate messagingTemplate
+            SimpMessagingTemplate messagingTemplate,
+            MessageService messageService
     ) {
         this.assistantMessageRepository = assistantMessageRepository;
         this.userService = userService;
@@ -52,6 +56,7 @@ public class AssistantService {
         this.messageRepository = messageRepository;
         this.eventPublisher = eventPublisher;
         this.messagingTemplate = messagingTemplate;
+        this.messageService = messageService;
     }
 
     @Transactional
@@ -79,6 +84,8 @@ public class AssistantService {
                 Map.of("assistant", true, "replyToMessageId", userMessage.id().toString())
         ));
 
+        messageService.markDeliveredForOnlineMembers(botMessage);
+
         Map<String, Object> metadata = new LinkedHashMap<>();
         metadata.put("conversationId", userMessage.conversationId().toString());
         metadata.put("userMessageId", userMessage.id().toString());
@@ -88,6 +95,17 @@ public class AssistantService {
         eventPublisher.publishMessageCreated(new MessageCreatedEvent(
                 UUID.randomUUID(),
                 "MESSAGE_CREATED",
+                userMessage.conversationId(),
+                botMessage.getId(),
+                ASSISTANT_BOT_USER_ID,
+                botMessage.getType(),
+                botMessage.getContent(),
+                Instant.now()
+        ));
+
+        eventPublisher.publishMessagePersisted(new MessagePersistedEvent(
+                UUID.randomUUID(),
+                "MESSAGE_PERSISTED",
                 userMessage.conversationId(),
                 botMessage.getId(),
                 ASSISTANT_BOT_USER_ID,

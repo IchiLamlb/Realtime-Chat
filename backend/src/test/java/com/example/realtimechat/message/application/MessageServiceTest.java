@@ -31,6 +31,10 @@ import com.example.realtimechat.message.infrastructure.MessageReactionRepository
 import com.example.realtimechat.message.infrastructure.MessageRepository;
 import com.example.realtimechat.user.application.UserService;
 import com.example.realtimechat.user.domain.User;
+import com.example.realtimechat.presence.application.PresenceService;
+import com.example.realtimechat.presence.api.dto.PresenceResponse;
+import com.example.realtimechat.presence.domain.PresenceStatus;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -85,6 +89,12 @@ class MessageServiceTest {
     @Mock
     private MultipartFile multipartFile;
 
+    @Mock
+    private PresenceService presenceService;
+
+    @Mock
+    private SimpMessagingTemplate messagingTemplate;
+
     private MessageService messageService;
     private User sender;
     private User recipient;
@@ -101,7 +111,9 @@ class MessageServiceTest {
                 userService,
                 eventPublisher,
                 rateLimiter,
-                attachmentStorageService
+                attachmentStorageService,
+                presenceService,
+                messagingTemplate
         );
         sender = user(SENDER_ID, "sender");
         recipient = user(RECIPIENT_ID, "recipient");
@@ -269,6 +281,62 @@ class MessageServiceTest {
                 joinedAt,
                 PageRequest.of(0, 51)
         );
+    }
+
+    @Test
+    void sendMarksDeliveredForOnlineMembers() {
+        SendMessageRequest request = new SendMessageRequest(
+                CONVERSATION_ID,
+                MessageType.TEXT,
+                "hello",
+                Map.of()
+        );
+        when(rateLimiter.allow("rate:user:" + SENDER_ID + ":message", 60, Duration.ofMinutes(1))).thenReturn(true);
+        when(conversationService.getAuthorizedConversation(CONVERSATION_ID, SENDER_ID)).thenReturn(conversation);
+        when(userService.getById(SENDER_ID)).thenReturn(sender);
+        when(messageRepository.save(any(Message.class))).thenAnswer(invocation -> {
+            Message message = invocation.getArgument(0);
+            setEntityFields(message, MESSAGE_ID);
+            return message;
+        });
+
+        // Mock conversation members (sender and recipient)
+        ConversationMember memberSender = new ConversationMember(conversation, sender, MemberRole.MEMBER);
+        ConversationMember memberRecipient = new ConversationMember(conversation, recipient, MemberRole.MEMBER);
+        when(memberRepository.findByConversationId(CONVERSATION_ID)).thenReturn(List.of(memberSender, memberRecipient));
+
+        // Mock recipient online status
+        when(presenceService.get(RECIPIENT_ID)).thenReturn(new PresenceResponse(RECIPIENT_ID, PresenceStatus.ONLINE));
+        when(receiptRepository.findByMessage_IdAndUser_IdAndStatus(any(), any(), any())).thenReturn(Optional.empty());
+        when(receiptRepository.save(any(MessageReceipt.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        MessageResponse response = messageService.send(SENDER_ID, request);
+
+        assertThat(response.status()).isEqualTo(MessageStatus.DELIVERED);
+        verify(receiptRepository).save(any(MessageReceipt.class));
+        verify(messagingTemplate).convertAndSend(any(String.class), any(MessageReceiptResponse.class));
+    }
+
+    @Test
+    void markConversationAsReadUpdatesWatermarkAndSavesReceipts() {
+        Message unreadMessage = message(MESSAGE_ID, MessageStatus.SENT);
+        ConversationMember member = new ConversationMember(conversation, recipient, MemberRole.MEMBER);
+        
+        when(memberRepository.findByConversationIdAndUserId(CONVERSATION_ID, RECIPIENT_ID)).thenReturn(Optional.of(member));
+        when(messageRepository.findFirstByConversationIdOrderByCreatedAtDesc(CONVERSATION_ID)).thenReturn(Optional.of(unreadMessage));
+        when(messageRepository.findByConversationIdAndSenderIdNotAndCreatedAtGreaterThanEqual(any(), any(), any()))
+                .thenReturn(List.of(unreadMessage));
+        when(receiptRepository.findByMessage_IdAndUser_IdAndStatus(MESSAGE_ID, RECIPIENT_ID, MessageStatus.READ))
+                .thenReturn(Optional.empty());
+        when(userService.getById(RECIPIENT_ID)).thenReturn(recipient);
+        when(receiptRepository.save(any(MessageReceipt.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        messageService.markConversationAsRead(RECIPIENT_ID, CONVERSATION_ID);
+
+        assertThat(member.getLastReadMessage()).isSameAs(unreadMessage);
+        assertThat(unreadMessage.getStatus()).isEqualTo(MessageStatus.READ);
+        verify(eventPublisher).publishMessageRead(any(MessageReadEvent.class));
+        verify(messagingTemplate).convertAndSend(any(String.class), any(MessageReceiptResponse.class));
     }
 
     private Message message(MessageStatus status) {

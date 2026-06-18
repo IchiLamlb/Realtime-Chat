@@ -7,8 +7,10 @@ import com.example.realtimechat.conversation.application.ConversationService;
 import com.example.realtimechat.conversation.domain.Conversation;
 import com.example.realtimechat.conversation.domain.ConversationMember;
 import com.example.realtimechat.conversation.infrastructure.ConversationMemberRepository;
+import com.example.realtimechat.kafka.event.ChatAnalyticsRawEvent;
 import com.example.realtimechat.kafka.event.MessageCreatedEvent;
 import com.example.realtimechat.kafka.event.MessageReadEvent;
+import com.example.realtimechat.kafka.event.MessagePersistedEvent;
 import com.example.realtimechat.kafka.producer.ChatEventPublisher;
 import com.example.realtimechat.message.domain.MessageReaction;
 import com.example.realtimechat.message.infrastructure.MessageReactionRepository;
@@ -26,12 +28,17 @@ import com.example.realtimechat.message.infrastructure.MessageReceiptRepository;
 import com.example.realtimechat.message.infrastructure.MessageRepository;
 import com.example.realtimechat.user.application.UserService;
 import com.example.realtimechat.user.domain.User;
+import com.example.realtimechat.presence.application.PresenceService;
+import com.example.realtimechat.presence.api.dto.PresenceResponse;
+import com.example.realtimechat.presence.domain.PresenceStatus;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.Optional;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -53,6 +60,8 @@ public class MessageService {
     private final ChatEventPublisher eventPublisher;
     private final RateLimiter rateLimiter;
     private final AttachmentStorageService attachmentStorageService;
+    private final PresenceService presenceService;
+    private final SimpMessagingTemplate messagingTemplate;
 
     public MessageService(
             MessageRepository messageRepository,
@@ -63,7 +72,9 @@ public class MessageService {
             UserService userService,
             ChatEventPublisher eventPublisher,
             RateLimiter rateLimiter,
-            AttachmentStorageService attachmentStorageService
+            AttachmentStorageService attachmentStorageService,
+            PresenceService presenceService,
+            SimpMessagingTemplate messagingTemplate
     ) {
         this.messageRepository = messageRepository;
         this.receiptRepository = receiptRepository;
@@ -74,11 +85,14 @@ public class MessageService {
         this.eventPublisher = eventPublisher;
         this.rateLimiter = rateLimiter;
         this.attachmentStorageService = attachmentStorageService;
+        this.presenceService = presenceService;
+        this.messagingTemplate = messagingTemplate;
     }
 
     @Transactional
     public MessageResponse send(UUID senderId, SendMessageRequest request) {
         if (!rateLimiter.allow("rate:user:" + senderId + ":message", 60, Duration.ofMinutes(1))) {
+            publishRateLimited(request.conversationId(), senderId, request.type());
             throw new BusinessException(HttpStatus.TOO_MANY_REQUESTS, "MESSAGE_RATE_LIMITED", "Too many messages");
         }
         Conversation conversation = conversationService.getAuthorizedConversation(request.conversationId(), senderId);
@@ -91,7 +105,11 @@ public class MessageService {
                 request.metadata()
         ));
 
+        markDeliveredForOnlineMembers(message);
+
         publishMessageCreated(conversation.getId(), message, senderId);
+        publishMessagePersisted(conversation.getId(), message, senderId);
+        publishAnalyticsRaw(conversation.getId(), message, senderId, false);
         conversationService.touch(conversation.getId());
         return MessageResponse.from(message);
     }
@@ -99,6 +117,7 @@ public class MessageService {
     @Transactional
     public MessageResponse sendAttachment(UUID senderId, UUID conversationId, MultipartFile file, String content) {
         if (!rateLimiter.allow("rate:user:" + senderId + ":message", 60, Duration.ofMinutes(1))) {
+            publishRateLimited(conversationId, senderId, null);
             throw new BusinessException(HttpStatus.TOO_MANY_REQUESTS, "MESSAGE_RATE_LIMITED", "Too many messages");
         }
 
@@ -122,14 +141,45 @@ public class MessageService {
                 metadata
         ));
 
+        markDeliveredForOnlineMembers(message);
+
         publishMessageCreated(conversation.getId(), message, senderId);
+        publishMessagePersisted(conversation.getId(), message, senderId);
+        publishAnalyticsRaw(conversation.getId(), message, senderId, false);
         conversationService.touch(conversation.getId());
         return MessageResponse.from(message);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
+    public void markDeliveredForOnlineMembers(Message message) {
+        UUID conversationId = message.getConversation().getId();
+        UUID senderId = message.getSender().getId();
+        List<ConversationMember> members = memberRepository.findByConversationId(conversationId);
+
+        boolean anyOnline = false;
+        for (ConversationMember member : members) {
+            UUID memberUserId = member.getUser().getId();
+            if (!memberUserId.equals(senderId)) {
+                PresenceResponse presence = presenceService.get(memberUserId);
+                if (PresenceStatus.ONLINE.equals(presence.status())) {
+                    MessageReceipt receipt = saveReceipt(message, member.getUser(), MessageStatus.DELIVERED);
+                    anyOnline = true;
+                    messagingTemplate.convertAndSend("/topic/conversations/" + conversationId, MessageReceiptResponse.from(receipt));
+                }
+            }
+        }
+        if (anyOnline) {
+            message.markDelivered();
+            messageRepository.save(message);
+        }
+    }
+
+    @Transactional
     public MessageHistoryResponse history(UUID currentUserId, UUID conversationId, UUID cursor, int limit) {
         conversationService.getAuthorizedConversation(conversationId, currentUserId);
+        if (cursor == null) {
+            markConversationAsRead(currentUserId, conversationId);
+        }
         ConversationMember member = memberRepository.findByConversationIdAndUserId(conversationId, currentUserId)
                 .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "MEMBER_NOT_FOUND", "Conversation member not found"));
         int safeLimit = Math.min(Math.max(limit, 1), 100);
@@ -151,6 +201,54 @@ public class MessageService {
                 .map(m -> MessageResponse.from(m, reactionsByMessageId.getOrDefault(m.getId(), List.of())))
                 .toList();
         return new MessageHistoryResponse(items, nextCursor, hasMore);
+    }
+
+    @Transactional
+    public void markConversationAsRead(UUID currentUserId, UUID conversationId) {
+        ConversationMember member = memberRepository.findByConversationIdAndUserId(conversationId, currentUserId)
+                .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "MEMBER_NOT_FOUND", "Conversation member not found"));
+
+        Optional<Message> latestMessageOpt = messageRepository.findFirstByConversationIdOrderByCreatedAtDesc(conversationId);
+        if (latestMessageOpt.isEmpty()) {
+            return;
+        }
+        Message latestMessage = latestMessageOpt.get();
+
+        member.markRead(latestMessage);
+        memberRepository.save(member);
+
+        List<Message> unreadMessages = messageRepository.findByConversationIdAndSenderIdNotAndCreatedAtGreaterThanEqual(
+                conversationId,
+                currentUserId,
+                member.getJoinedAt()
+        );
+
+        for (Message msg : unreadMessages) {
+            if (MessageStatus.DELETED.equals(msg.getStatus())) {
+                continue;
+            }
+
+            Optional<MessageReceipt> existingReadReceipt = receiptRepository.findByMessage_IdAndUser_IdAndStatus(msg.getId(), currentUserId, MessageStatus.READ);
+            if (existingReadReceipt.isEmpty()) {
+                saveReceipt(msg, userService.getById(currentUserId), MessageStatus.DELIVERED);
+                msg.markDelivered();
+
+                MessageReceipt readReceipt = saveReceipt(msg, userService.getById(currentUserId), MessageStatus.READ);
+                msg.markRead();
+                messageRepository.save(msg);
+
+                messagingTemplate.convertAndSend("/topic/conversations/" + conversationId, MessageReceiptResponse.from(readReceipt));
+
+                eventPublisher.publishMessageRead(new MessageReadEvent(
+                        UUID.randomUUID(),
+                        "MESSAGE_READ",
+                        conversationId,
+                        msg.getId(),
+                        currentUserId,
+                        Instant.now()
+                ));
+            }
+        }
     }
 
     @Transactional
@@ -316,6 +414,45 @@ public class MessageService {
                 senderId,
                 message.getType(),
                 message.getContent(),
+                Instant.now()
+        ));
+    }
+
+    private void publishMessagePersisted(UUID conversationId, Message message, UUID senderId) {
+        eventPublisher.publishMessagePersisted(new MessagePersistedEvent(
+                UUID.randomUUID(),
+                "MESSAGE_PERSISTED",
+                conversationId,
+                message.getId(),
+                senderId,
+                message.getType(),
+                message.getContent(),
+                Instant.now()
+        ));
+    }
+
+    private void publishAnalyticsRaw(UUID conversationId, Message message, UUID senderId, boolean rateLimited) {
+        eventPublisher.publishAnalyticsRaw(new ChatAnalyticsRawEvent(
+                UUID.randomUUID(),
+                "MESSAGE_ANALYTICS",
+                conversationId,
+                message.getId(),
+                senderId,
+                message.getType(),
+                rateLimited,
+                Instant.now()
+        ));
+    }
+
+    private void publishRateLimited(UUID conversationId, UUID senderId, MessageType messageType) {
+        eventPublisher.publishAnalyticsRaw(new ChatAnalyticsRawEvent(
+                UUID.randomUUID(),
+                "MESSAGE_RATE_LIMITED",
+                conversationId,
+                null,
+                senderId,
+                messageType,
+                true,
                 Instant.now()
         ));
     }
