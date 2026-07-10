@@ -62,6 +62,7 @@ public class MessageService {
     private final AttachmentStorageService attachmentStorageService;
     private final PresenceService presenceService;
     private final SimpMessagingTemplate messagingTemplate;
+    private final com.example.realtimechat.common.observability.MetricsService metricsService;
 
     public MessageService(
             MessageRepository messageRepository,
@@ -74,7 +75,8 @@ public class MessageService {
             RateLimiter rateLimiter,
             AttachmentStorageService attachmentStorageService,
             PresenceService presenceService,
-            SimpMessagingTemplate messagingTemplate
+            SimpMessagingTemplate messagingTemplate,
+            com.example.realtimechat.common.observability.MetricsService metricsService
     ) {
         this.messageRepository = messageRepository;
         this.receiptRepository = receiptRepository;
@@ -87,67 +89,84 @@ public class MessageService {
         this.attachmentStorageService = attachmentStorageService;
         this.presenceService = presenceService;
         this.messagingTemplate = messagingTemplate;
+        this.metricsService = metricsService;
     }
 
     @Transactional
     public MessageResponse send(UUID senderId, SendMessageRequest request) {
-        if (!rateLimiter.allow("rate:user:" + senderId + ":message", 60, Duration.ofMinutes(1))) {
-            publishRateLimited(request.conversationId(), senderId, request.type());
-            throw new BusinessException(HttpStatus.TOO_MANY_REQUESTS, "MESSAGE_RATE_LIMITED", "Too many messages");
+        long startTime = System.currentTimeMillis();
+        try {
+            if (!rateLimiter.allow("rate:user:" + senderId + ":message", 60, Duration.ofMinutes(1))) {
+                publishRateLimited(request.conversationId(), senderId, request.type());
+                throw new BusinessException(HttpStatus.TOO_MANY_REQUESTS, "MESSAGE_RATE_LIMITED", "Too many messages");
+            }
+            Conversation conversation = conversationService.getAuthorizedConversation(request.conversationId(), senderId);
+            User sender = userService.getById(senderId);
+            Message message = messageRepository.save(new Message(
+                    conversation,
+                    sender,
+                    request.type(),
+                    request.content(),
+                    request.metadata()
+            ));
+
+            markDeliveredForOnlineMembers(message);
+
+            publishMessageCreated(conversation.getId(), message, senderId);
+            publishMessagePersisted(conversation.getId(), message, senderId);
+            publishAnalyticsRaw(conversation.getId(), message, senderId, false);
+            conversationService.touch(conversation.getId());
+            metricsService.incrementMessagesSent();
+            metricsService.recordMessageDeliveryLatency(System.currentTimeMillis() - startTime);
+            return MessageResponse.from(message);
+        } catch (Exception e) {
+            metricsService.incrementMessagesFailed();
+            throw e;
         }
-        Conversation conversation = conversationService.getAuthorizedConversation(request.conversationId(), senderId);
-        User sender = userService.getById(senderId);
-        Message message = messageRepository.save(new Message(
-                conversation,
-                sender,
-                request.type(),
-                request.content(),
-                request.metadata()
-        ));
-
-        markDeliveredForOnlineMembers(message);
-
-        publishMessageCreated(conversation.getId(), message, senderId);
-        publishMessagePersisted(conversation.getId(), message, senderId);
-        publishAnalyticsRaw(conversation.getId(), message, senderId, false);
-        conversationService.touch(conversation.getId());
-        return MessageResponse.from(message);
     }
 
     @Transactional
     public MessageResponse sendAttachment(UUID senderId, UUID conversationId, MultipartFile file, String content) {
-        if (!rateLimiter.allow("rate:user:" + senderId + ":message", 60, Duration.ofMinutes(1))) {
-            publishRateLimited(conversationId, senderId, null);
-            throw new BusinessException(HttpStatus.TOO_MANY_REQUESTS, "MESSAGE_RATE_LIMITED", "Too many messages");
+        long startTime = System.currentTimeMillis();
+        try {
+            if (!rateLimiter.allow("rate:user:" + senderId + ":message", 60, Duration.ofMinutes(1))) {
+                publishRateLimited(conversationId, senderId, null);
+                throw new BusinessException(HttpStatus.TOO_MANY_REQUESTS, "MESSAGE_RATE_LIMITED", "Too many messages");
+            }
+
+            Conversation conversation = conversationService.getAuthorizedConversation(conversationId, senderId);
+            User sender = userService.getById(senderId);
+            StoredAttachment attachment = attachmentStorageService.store(file);
+
+            Map<String, Object> metadata = new LinkedHashMap<>();
+            metadata.put("url", attachment.url());
+            metadata.put("originalName", attachment.originalName());
+            metadata.put("storedName", attachment.storedName());
+            metadata.put("contentType", attachment.contentType());
+            metadata.put("size", attachment.size());
+
+            String messageContent = StringUtils.hasText(content) ? content.trim() : attachment.originalName();
+            Message message = messageRepository.save(new Message(
+                    conversation,
+                    sender,
+                    attachment.image() ? MessageType.IMAGE : MessageType.FILE,
+                    messageContent,
+                    metadata
+            ));
+
+            markDeliveredForOnlineMembers(message);
+
+            publishMessageCreated(conversation.getId(), message, senderId);
+            publishMessagePersisted(conversation.getId(), message, senderId);
+            publishAnalyticsRaw(conversation.getId(), message, senderId, false);
+            conversationService.touch(conversation.getId());
+            metricsService.incrementMessagesSent();
+            metricsService.recordMessageDeliveryLatency(System.currentTimeMillis() - startTime);
+            return MessageResponse.from(message);
+        } catch (Exception e) {
+            metricsService.incrementMessagesFailed();
+            throw e;
         }
-
-        Conversation conversation = conversationService.getAuthorizedConversation(conversationId, senderId);
-        User sender = userService.getById(senderId);
-        StoredAttachment attachment = attachmentStorageService.store(file);
-
-        Map<String, Object> metadata = new LinkedHashMap<>();
-        metadata.put("url", attachment.url());
-        metadata.put("originalName", attachment.originalName());
-        metadata.put("storedName", attachment.storedName());
-        metadata.put("contentType", attachment.contentType());
-        metadata.put("size", attachment.size());
-
-        String messageContent = StringUtils.hasText(content) ? content.trim() : attachment.originalName();
-        Message message = messageRepository.save(new Message(
-                conversation,
-                sender,
-                attachment.image() ? MessageType.IMAGE : MessageType.FILE,
-                messageContent,
-                metadata
-        ));
-
-        markDeliveredForOnlineMembers(message);
-
-        publishMessageCreated(conversation.getId(), message, senderId);
-        publishMessagePersisted(conversation.getId(), message, senderId);
-        publishAnalyticsRaw(conversation.getId(), message, senderId, false);
-        conversationService.touch(conversation.getId());
-        return MessageResponse.from(message);
     }
 
     @Transactional

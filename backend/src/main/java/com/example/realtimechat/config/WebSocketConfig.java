@@ -13,9 +13,11 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private final StompAuthenticationInterceptor stompAuthenticationInterceptor;
+    private final com.example.realtimechat.common.observability.WebSocketTraceInterceptor webSocketTraceInterceptor;
 
-    public WebSocketConfig(StompAuthenticationInterceptor stompAuthenticationInterceptor) {
+    public WebSocketConfig(StompAuthenticationInterceptor stompAuthenticationInterceptor, com.example.realtimechat.common.observability.WebSocketTraceInterceptor webSocketTraceInterceptor) {
         this.stompAuthenticationInterceptor = stompAuthenticationInterceptor;
+        this.webSocketTraceInterceptor = webSocketTraceInterceptor;
     }
 
     @Override
@@ -33,6 +35,6 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureClientInboundChannel(ChannelRegistration registration) {
-        registration.interceptors(stompAuthenticationInterceptor);
+        registration.interceptors(webSocketTraceInterceptor, stompAuthenticationInterceptor);
     }
 }

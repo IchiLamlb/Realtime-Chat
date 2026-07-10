@@ -65,7 +65,8 @@ public class GlobalExceptionHandler {
     }
 
     private ResponseEntity<ErrorResponse> build(HttpStatus status, String code, String message, HttpServletRequest request) {
+        String traceId = java.util.UUID.randomUUID().toString();
         return ResponseEntity.status(status)
-                .body(new ErrorResponse(Instant.now(), status.value(), code, message, request.getRequestURI()));
+                .body(new ErrorResponse(Instant.now(), status.value(), code, message, request.getRequestURI(), traceId));
     }
 }
