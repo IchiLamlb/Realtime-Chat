@@ -59,12 +59,27 @@ public class NotificationRequestedConsumer {
         var conversation = conversationRepository.findById(event.conversationId()).orElse(null);
         var message = messageRepository.findById(event.messageId()).orElse(null);
 
+        // Gom notification
+        var existingOpt = notificationRepository.findFirstByUserIdAndConversationIdAndReadAtIsNullOrderByCreatedAtDesc(
+                event.recipientId(), event.conversationId());
+                
+        if (existingOpt.isPresent()) {
+            Notification oldNotif = existingOpt.get();
+            notificationRepository.delete(oldNotif);
+        }
+        
+        int unreadCount = notificationRepository.countByUserIdAndConversationIdAndReadAtIsNull(event.recipientId(), event.conversationId()) + 1;
+        String content = event.content();
+        if (unreadCount > 1) {
+            content = "Bạn có " + unreadCount + " tin nhắn mới chưa đọc";
+        }
+
         Notification notification = new Notification(
                 recipient,
                 conversation,
                 message,
                 event.eventType(),
-                event.content()
+                content
         );
         notificationRepository.save(notification);
         log.info("Saved notification for offline user display_name={}", recipient.getDisplayName());
