@@ -4,6 +4,7 @@ package com.example.realtimechat.auth.application;
 import com.example.realtimechat.auth.api.dto.AuthResponse;
 import com.example.realtimechat.auth.api.dto.ForgotPasswordRequest;
 import com.example.realtimechat.auth.api.dto.LoginRequest;
+import com.example.realtimechat.auth.api.dto.LogoutRequest;
 import com.example.realtimechat.auth.api.dto.RefreshTokenRequest;
 import com.example.realtimechat.auth.api.dto.RegisterRequest;
 import com.example.realtimechat.auth.api.dto.ResetPasswordRequest;
@@ -101,6 +102,16 @@ public class AuthService {
 
         token.revoke();
         return tokenResponse(token.getUser());
+    }
+
+    @Transactional
+    public void logout(LogoutRequest request) {
+        refreshTokenRepository.findByTokenHash(hashToken(request.refreshToken()))
+                .ifPresent(token -> {
+                    if (token.getRevokedAt() == null && token.getExpiresAt().isAfter(Instant.now())) {
+                        token.revoke();
+                    }
+                });
     }
 
     @Transactional

@@ -4,6 +4,7 @@ package com.example.realtimechat.auth.api;
 import com.example.realtimechat.auth.api.dto.AuthResponse;
 import com.example.realtimechat.auth.api.dto.ForgotPasswordRequest;
 import com.example.realtimechat.auth.api.dto.LoginRequest;
+import com.example.realtimechat.auth.api.dto.LogoutRequest;
 import com.example.realtimechat.auth.api.dto.RefreshTokenRequest;
 import com.example.realtimechat.auth.api.dto.RegisterRequest;
 import com.example.realtimechat.auth.api.dto.ResetPasswordRequest;
@@ -38,6 +39,12 @@ public class AuthController {
     @PostMapping("/refresh-token")
     ApiResponse<AuthResponse> refreshToken(@Valid @RequestBody RefreshTokenRequest request) {
         return ApiResponse.ok("Token refreshed", authService.refreshToken(request));
+    }
+
+    @PostMapping("/logout")
+    ApiResponse<Void> logout(@Valid @RequestBody LogoutRequest request) {
+        authService.logout(request);
+        return ApiResponse.ok("Logged out", null);
     }
 
     @PostMapping("/forgot-password")

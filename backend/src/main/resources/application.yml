@@ -9,7 +9,7 @@ spring:
       - optional:file:.env[.properties]
       - optional:file:../.env[.properties]
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/realtime_chat}
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/realtime_chat}
     username: ${DB_USERNAME:chat_user}
     password: ${DB_PASSWORD:chat_password}
   jpa:
