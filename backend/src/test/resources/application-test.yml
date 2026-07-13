@@ -1,0 +1,19 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5433/realtime_chat?options=-c%20TimeZone=UTC
+    username: chat_user
+    password: chat_password
+  jpa:
+    properties:
+      hibernate:
+        jdbc.time_zone: UTC
+  kafka:
+    bootstrap-servers: ${spring.embedded.kafka.brokers:localhost:9092}
+
+app:
+  upload:
+    storage: LOCAL
+  clickhouse:
+    url: jdbc:clickhouse://localhost:8123/realtime_chat_analytics
+    username: analytics_user
+    password: analytics_password

@@ -17,8 +17,12 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.test.context.EmbeddedKafka;
 import org.springframework.test.context.ActiveProfiles;
 
-@SpringBootTest
-@EmbeddedKafka(partitions = 1, brokerProperties = { "listeners=PLAINTEXT://localhost:9092", "port=9092" })
+@SpringBootTest(properties = "spring.datasource.url=jdbc:postgresql://localhost:5433/realtime_chat?options=-c%20TimeZone=UTC")
+@EmbeddedKafka(
+        partitions = 1,
+        topics = "chat.message.created",
+        bootstrapServersProperty = "spring.kafka.bootstrap-servers"
+)
 @ActiveProfiles("test")
 public class KafkaIntegrationTest {
 

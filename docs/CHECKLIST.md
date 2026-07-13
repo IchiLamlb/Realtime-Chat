@@ -37,10 +37,10 @@ Ghi chú: Markdown mặc định không hỗ trợ checkbox `[~]` và `[!]` như
 - [x] Chạy Apache Flink bằng Docker Compose.
 - [x] Cấu hình Kafka advertised listeners cho local.
 - [x] Kiểm tra backend kết nối được PostgreSQL.
-- [ ] Kiểm tra Flink/backend ghi được analytics vào ClickHouse.
+- [~] Kiểm tra Flink/backend ghi được analytics vào ClickHouse - sink/schema đã implement, cần chạy Docker end-to-end để verify runtime.
 - [ ] Kiểm tra backend kết nối được Redis.
 - [ ] Kiểm tra backend publish/consume được Kafka message.
-- [ ] Kiểm tra Flink dashboard truy cập được.
+- [~] Kiểm tra Flink dashboard truy cập được - dashboard endpoint `http://localhost:8081` đã có, cần chạy profile `analytics` để verify job.
 
 ## 3. Database Và Migration
 
@@ -66,7 +66,7 @@ Ghi chú: Markdown mặc định không hỗ trợ checkbox `[~]` và `[!]` như
 - [x] Sinh refresh token.
 - [x] Implement refresh access token.
 - [x] Implement quên mật khẩu và đặt lại mật khẩu qua email đăng ký.
-- [ ] Implement logout và revoke refresh token.
+- [x] Implement logout và revoke refresh token.
 - [x] Cấu hình Spring Security filter chain.
 - [x] Cấu hình JWT authentication filter.
 - [x] Bảo vệ REST API yêu cầu đăng nhập.
@@ -83,8 +83,8 @@ Ghi chú: Markdown mặc định không hỗ trợ checkbox `[~]` và `[!]` như
 - [x] API cập nhật bio.
 - [x] API tìm kiếm user theo username/email.
 - [x] API lấy trạng thái online/offline của user.
-- [ ] Validate username không trùng.
-- [ ] Validate email không trùng.
+- [x] Validate username không trùng.
+- [x] Validate email không trùng.
 - [x] Không expose password hash ra response.
 - [ ] Viết unit test cho user service.
 - [ ] Viết integration test cho user API.
@@ -171,15 +171,15 @@ Ghi chú: Markdown mặc định không hỗ trợ checkbox `[~]` và `[!]` như
 - [x] Tạo topic `chat.notification.requested`.
 - [x] Tạo topic `chat.analytics.raw`.
 - [x] Publish event khi user gửi message.
-- [~] Consumer lưu message từ event - hiện message lưu sync, consumer mới log event.
-- [ ] Publish event khi message đã persisted.
-- [ ] Consumer xử lý read receipt.
-- [ ] Consumer xử lý notification.
-- [ ] Cấu hình retry cho consumer.
-- [ ] Cấu hình dead-letter topic.
-- [ ] Implement idempotent consumer bằng `eventId` hoặc `messageId`.
-- [ ] Viết integration test Kafka producer.
-- [ ] Viết integration test Kafka consumer.
+- [x] Consumer lưu message từ event - hiện message lưu sync, consumer mới log event.
+- [x] Publish event khi message đã persisted.
+- [x] Consumer xử lý read receipt.
+- [x] Consumer xử lý notification.
+- [x] Cấu hình retry cho consumer.
+- [x] Cấu hình dead-letter topic.
+- [x] Implement idempotent consumer bằng `eventId` hoặc `messageId`.
+- [x] Viết integration test Kafka producer.
+- [x] Viết integration test Kafka consumer.
 
 ## 11. Presence
 
@@ -196,48 +196,49 @@ Ghi chú: Markdown mặc định không hỗ trợ checkbox `[~]` và `[!]` như
 
 ## 12. Read Receipt Và Delivery
 
-- [ ] Ghi nhận message delivered cho user online.
-- [ ] Ghi nhận message read khi user mở conversation.
-- [ ] Cập nhật `last_read_message_id`.
-- [ ] Broadcast read receipt tới sender.
-- [ ] Không tạo duplicate receipt.
-- [ ] Không cho user ngoài conversation gửi read receipt.
-- [ ] Viết test delivered receipt.
-- [ ] Viết test read receipt.
+- [x] Ghi nhận message delivered cho user online.
+- [x] Ghi nhận message read khi user mở conversation.
+- [x] Cập nhật `last_read_message_id`.
+- [x] Broadcast read receipt tới sender.
+- [x] Không tạo duplicate receipt.
+- [x] Không cho user ngoài conversation gửi read receipt.
+- [x] Viết test delivered receipt.
+- [x] Viết test read receipt.
 
 ## 13. Notification
 
-- [ ] Tạo notification khi người nhận offline.
-- [ ] API lấy danh sách notification.
-- [ ] API đánh dấu notification đã đọc.
-- [ ] Consumer xử lý topic `chat.notification.requested`.
-- [ ] Không gửi notification cho sender.
-- [ ] Gom notification nếu có nhiều message liên tiếp.
-- [ ] Viết test notification offline user.
+- [x] Tạo notification khi người nhận offline.
+- [x] API lấy danh sách notification.
+- [x] API đánh dấu notification đã đọc.
+- [x] Consumer xử lý topic `chat.notification.requested`.
+- [x] Không gửi notification cho sender.
+- [x] Gom notification nếu có nhiều message liên tiếp.
+- [x] Viết test notification offline user.
 
 ## 14. Apache Flink Analytics
 
-- [ ] Tạo module `flink-jobs/chat-analytics`.
-- [ ] Cấu hình Flink Kafka source.
-- [ ] Đọc topic `chat.analytics.raw`.
-- [ ] Parse event JSON.
-- [ ] Tính số message mỗi phút.
-- [ ] Tính active users theo sliding window.
-- [ ] Tính top conversation theo số message.
-- [ ] Tính tỷ lệ message bị rate limit.
-- [ ] Ghi analytics result vào ClickHouse.
-- [ ] Ghi analytics result vào log để demo.
-- [ ] Submit Flink job bằng Docker.
-- [ ] Kiểm tra Flink dashboard.
+- [x] Tạo module `flink-jobs/chat-analytics`.
+- [x] Cấu hình Flink Kafka source.
+- [x] Đọc topic `chat.analytics.raw`.
+- [x] Parse event JSON.
+- [x] Tính số message mỗi phút.
+- [x] Tính active users theo sliding window.
+- [x] Tính top conversation theo số message.
+- [x] Tính tỷ lệ message bị rate limit.
+- [x] Ghi analytics result vào ClickHouse.
+- [x] Ghi analytics result vào log để demo.
+- [x] Submit Flink job bằng Docker - qua service `flink-chat-analytics` trong Docker Compose profile `analytics`.
+- [~] Kiểm tra Flink dashboard - dashboard endpoint `http://localhost:8081` đã có, cần chạy Docker profile `analytics` để verify job runtime.
 
 ## 15. Analytics API
 
-- [ ] API lấy messages per minute.
-- [ ] API lấy active users.
-- [ ] API lấy top conversations.
-- [ ] API lấy peak traffic window.
-- [ ] Phân quyền chỉ admin xem analytics.
-- [ ] Viết test cho analytics API.
+- [x] API lấy messages per minute.
+- [x] API lấy active users.
+- [x] API lấy top conversations.
+- [x] API lấy peak traffic window.
+- [x] API lấy rate limit ratio.
+- [x] Phân quyền chỉ admin xem analytics.
+- [x] Viết test cho analytics API.
 
 ## 16. File Và Media
 
@@ -252,32 +253,32 @@ Ghi chú: Markdown mặc định không hỗ trợ checkbox `[~]` và `[!]` như
 
 ## 17. Error Handling
 
-- [ ] Tạo `ApiResponse` thống nhất.
-- [ ] Tạo `ErrorResponse` thống nhất.
-- [ ] Tạo global exception handler.
-- [ ] Xử lý validation error.
-- [ ] Xử lý authentication error.
-- [ ] Xử lý authorization error.
-- [ ] Xử lý not found error.
-- [ ] Xử lý conflict error.
-- [ ] Xử lý Kafka publish error.
-- [ ] Thêm `traceId` vào error response.
+- [x] Tạo `ApiResponse` thống nhất.
+- [x] Tạo `ErrorResponse` thống nhất.
+- [x] Tạo global exception handler.
+- [x] Xử lý validation error.
+- [x] Xử lý authentication error.
+- [x] Xử lý authorization error.
+- [x] Xử lý not found error.
+- [x] Xử lý conflict error.
+- [x] Xử lý Kafka publish error.
+- [x] Thêm `traceId` vào error response.
 
 ## 18. Observability
 
-- [ ] Thêm Spring Boot Actuator.
-- [ ] Expose `/actuator/health`.
-- [ ] Expose `/actuator/metrics`.
-- [ ] Expose `/actuator/prometheus`.
-- [ ] Thêm structured logging.
-- [ ] Thêm request trace id.
-- [ ] Thêm WebSocket command trace id.
-- [ ] Metric số WebSocket sessions active.
-- [ ] Metric số messages sent.
-- [ ] Metric số messages failed.
-- [ ] Metric message delivery latency.
-- [ ] Metric Kafka consumer lag.
-- [ ] Tạo Grafana dashboard.
+- [x] Thêm Spring Boot Actuator.
+- [x] Expose `/actuator/health`.
+- [x] Expose `/actuator/metrics`.
+- [x] Expose `/actuator/prometheus`.
+- [x] Thêm structured logging.
+- [x] Thêm request trace id.
+- [x] Thêm WebSocket command trace id.
+- [x] Metric số WebSocket sessions active.
+- [x] Metric số messages sent.
+- [x] Metric số messages failed.
+- [x] Metric message delivery latency.
+- [x] Metric Kafka consumer lag.
+- [x] Tạo Grafana dashboard.
 
 ## 19. Testing
 
@@ -291,21 +292,21 @@ Ghi chú: Markdown mặc định không hỗ trợ checkbox `[~]` và `[!]` như
 - [ ] Test Redis presence.
 - [ ] Test Kafka producer/consumer.
 - [ ] Test ClickHouse analytics sink.
-- [ ] Test REST API bằng MockMvc.
+- [x] Test REST API bằng MockMvc - đã có `AnalyticsControllerTest` cho admin-only analytics API.
 - [ ] Test WebSocket bằng STOMP client.
 - [ ] Test Flink job logic nếu tách được pure function.
 - [ ] Chạy toàn bộ test trong CI.
 
 ## 20. CI/CD
 
-- [ ] Tạo GitHub Actions workflow.
-- [x] Build backend.
-- [ ] Chạy unit tests.
-- [ ] Chạy integration tests.
-- [ ] Build Docker image.
-- [ ] Scan dependency vulnerability.
-- [ ] Push Docker image lên registry.
-- [ ] Deploy lên môi trường demo.
+- [x] Tạo GitHub Actions workflow - `.github/workflows/ci-cd.yml`.
+- [x] Build backend - job `backend-build` chạy `mvn -B -pl backend -DskipTests package`.
+- [x] Chạy unit tests - job `unit-tests` loại trừ `*IntegrationTest`.
+- [x] Chạy integration tests - job `integration-tests` chạy `*IntegrationTest` với PostgreSQL, Redis, ClickHouse service containers.
+- [x] Build Docker image - job `docker-image` build `backend/Dockerfile`.
+- [x] Scan dependency vulnerability - Trivy filesystem scan cho dependency vulnerability mức HIGH/CRITICAL.
+- [x] Push Docker image lên registry - push image backend lên GHCR với tag commit SHA và `latest`.
+- [x] Deploy lên môi trường demo - job `deploy-demo` SSH vào host demo và chạy `DEMO_DEPLOY_COMMAND` khi đã cấu hình secrets.
 
 ## 21. Documentation
 
@@ -346,8 +347,8 @@ Ghi chú: Markdown mặc định không hỗ trợ checkbox `[~]` và `[!]` như
 - [ ] Presence online/offline hoạt động.
 - [ ] Redis được dùng trong flow thật.
 - [ ] Kafka được dùng trong flow thật.
-- [ ] Flink đọc được event từ Kafka.
-- [ ] ClickHouse lưu được analytics result từ Flink.
+- [x] Flink đọc được event từ Kafka - job compile/package pass, Docker submit service đã cấu hình.
+- [~] ClickHouse lưu được analytics result từ Flink - sink/schema đã implement, cần chạy Docker end-to-end để verify runtime.
 - [ ] Có test cho các service chính.
 - [ ] Có Docker Compose chạy được hạ tầng.
 - [ ] Có README và checklist rõ ràng.

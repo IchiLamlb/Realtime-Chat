@@ -2,6 +2,7 @@ package com.example.realtimechat.notification;
 
 import com.example.realtimechat.notification.domain.Notification;
 import com.example.realtimechat.notification.infrastructure.NotificationRepository;
+import com.example.realtimechat.conversation.domain.ConversationType;
 import com.example.realtimechat.user.domain.User;
 import com.example.realtimechat.user.infrastructure.UserRepository;
 import com.example.realtimechat.conversation.domain.Conversation;
@@ -15,6 +16,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -29,7 +31,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest
+@SpringBootTest(properties = "spring.datasource.url=jdbc:postgresql://localhost:5433/realtime_chat?options=-c%20TimeZone=UTC")
 @AutoConfigureMockMvc(addFilters = false) // Disable security filters for simple testing
 @ActiveProfiles("test")
 @Transactional
@@ -55,14 +57,20 @@ class NotificationIntegrationTest {
         testUser = new User("testuser", "test@example.com", "password", "Test User");
         userRepository.save(testUser);
 
-        Conversation conversation = Conversation.createDirect();
+        Conversation conversation = new Conversation(ConversationType.DIRECT, null, null, testUser);
         conversationRepository.save(conversation);
 
         testNotification = new Notification(testUser, conversation, null, "NEW_MESSAGE", "Bạn có tin nhắn mới");
         notificationRepository.save(testNotification);
 
         // Mock authentication
-        AuthenticatedUser authUser = new AuthenticatedUser(testUser.getId(), testUser.getUsername(), "ROLE_USER");
+        AuthenticatedUser authUser = new AuthenticatedUser(
+                testUser.getId(),
+                testUser.getUsername(),
+                testUser.getPasswordHash(),
+                true,
+                List.of(new SimpleGrantedAuthority("ROLE_USER"))
+        );
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken(authUser, null, authUser.getAuthorities())
         );

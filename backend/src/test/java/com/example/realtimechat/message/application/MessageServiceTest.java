@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.example.realtimechat.common.error.BusinessException;
+import com.example.realtimechat.common.observability.MetricsService;
 import com.example.realtimechat.common.ratelimit.RateLimiter;
 import com.example.realtimechat.conversation.application.ConversationService;
 import com.example.realtimechat.conversation.domain.Conversation;
@@ -95,6 +96,9 @@ class MessageServiceTest {
     @Mock
     private SimpMessagingTemplate messagingTemplate;
 
+    @Mock
+    private MetricsService metricsService;
+
     private MessageService messageService;
     private User sender;
     private User recipient;
@@ -113,7 +117,8 @@ class MessageServiceTest {
                 rateLimiter,
                 attachmentStorageService,
                 presenceService,
-                messagingTemplate
+                messagingTemplate,
+                metricsService
         );
         sender = user(SENDER_ID, "sender");
         recipient = user(RECIPIENT_ID, "recipient");
